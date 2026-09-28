@@ -1,0 +1,10 @@
+[package]
+name = "dart2wasmtime"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wasmtime = { version = ">=48, <50", default-features = false, features = ["runtime", "gc"] }
+
+[dev-dependencies]
+wasmtime = "49"
