@@ -1,1 +1,4 @@
 /target
+
+demos/*.wasm
+demos/*.map

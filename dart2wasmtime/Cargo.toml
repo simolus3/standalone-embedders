@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
 wasmtime = { version = ">=48, <50", default-features = false, features = ["runtime", "gc"] }
 
 [dev-dependencies]
 wasmtime = "49"
+tokio = { version = "1.53", features = ["rt", "macros", "time", "sync"] }

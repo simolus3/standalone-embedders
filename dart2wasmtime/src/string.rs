@@ -30,6 +30,19 @@ impl DartString {
         Ok(string.contents.len() as i32)
     }
 
+    pub fn func_json_encode_string<E: DartEmbedder>(
+        mut caller: Caller<'_, E>,
+        string: Option<Rooted<ExternRef>>,
+    ) -> Result<Rooted<ExternRef>> {
+        let string: &Self = externref_ref(&caller, &null_check(string)?)?;
+        let as_json: String = match serde_json::to_string(string.as_ref()) {
+            Ok(json) => json,
+            Err(_) => bail!("Could not format json"),
+        };
+
+        ExternRef::new(&mut caller, as_json.into_boxed_str())
+    }
+
     /// Formats `value` like Dart's `int.toRadixString(radix)`: lowercase digits, with a leading
     /// `-` for negative values.
     pub fn from_i64(value: i64, radix: i32) -> Result<Self> {
