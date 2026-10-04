@@ -20,7 +20,7 @@ pub use event_loop::{DartCallback, DartSchedule};
 mod event_loop;
 mod stack_trace;
 mod string;
-mod utils;
+pub mod utils;
 
 pub trait DartEmbedder: 'static {
     type Timer: DartSchedule;
@@ -134,6 +134,15 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
             }
             "stringLength" => {
                 linker.func_wrap("dart", import.name(), DartString::func_string_length)?;
+            }
+            "stringEquals" => {
+                linker.func_wrap("dart", import.name(), DartString::func_string_equals)?;
+            }
+            "stringCompare" => {
+                linker.func_wrap("dart", import.name(), DartString::func_string_compare)?;
+            }
+            "stringCodeUnitAt" => {
+                linker.func_wrap("dart", import.name(), DartString::func_string_code_unit_at)?;
             }
             "i64ToString" => {
                 linker.func_wrap(

@@ -8,7 +8,7 @@ use crate::{
     utils::{externref_mut, externref_ref, null_check},
 };
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq, PartialOrd, Eq, Ord)]
 #[repr(transparent)]
 pub struct DartString {
     contents: Box<str>,
@@ -28,6 +28,45 @@ impl DartString {
     ) -> Result<i32> {
         let string: &Self = externref_ref(&caller, &null_check(string)?)?;
         Ok(string.contents.len() as i32)
+    }
+
+    pub fn func_string_equals<E: DartEmbedder>(
+        caller: Caller<'_, E>,
+        a: Option<Rooted<ExternRef>>,
+        b: Option<Rooted<ExternRef>>,
+    ) -> Result<i32> {
+        let a = Self::from_externref(&caller, &null_check(a)?)?;
+        let b = Self::from_externref(&caller, &null_check(b)?)?;
+
+        Ok(if a.eq(b) { 1 } else { 0 })
+    }
+
+    pub fn func_string_compare<E: DartEmbedder>(
+        caller: Caller<'_, E>,
+        a: Option<Rooted<ExternRef>>,
+        b: Option<Rooted<ExternRef>>,
+    ) -> Result<i32> {
+        let a = Self::from_externref(&caller, &null_check(a)?)?;
+        let b = Self::from_externref(&caller, &null_check(b)?)?;
+
+        Ok(match a.cmp(b) {
+            core::cmp::Ordering::Less => -1,
+            core::cmp::Ordering::Equal => 0,
+            core::cmp::Ordering::Greater => 1,
+        })
+    }
+
+    pub fn func_string_code_unit_at<E: DartEmbedder>(
+        caller: Caller<'_, E>,
+        string: Option<Rooted<ExternRef>>,
+        index: i32,
+    ) -> Result<i32> {
+        let string = Self::from_externref(&caller, &null_check(string)?)?;
+        let Some(char) = string.contents.chars().nth(index as usize) else {
+            bail!("out of bounds")
+        };
+
+        Ok(char as i32)
     }
 
     pub fn func_json_encode_string<E: DartEmbedder>(

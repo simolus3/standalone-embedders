@@ -1,0 +1,12 @@
+[versions]
+endive = "999-SNAPSHOT"
+googleJavaFormat = "1.36.1"
+spotless = "8.10.2"
+
+[libraries]
+endive-run = { module = "run.endive:runtime", version.ref = "endive" }
+endive-compiler = { module = "run.endive:build-time-compiler", version.ref = "endive" }
+spotless-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
+
+[plugins]
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

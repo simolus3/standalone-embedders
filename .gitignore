@@ -2,3 +2,5 @@
 
 demos/*.wasm
 demos/*.map
+build/
+.gradle/
