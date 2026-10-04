@@ -6,6 +6,9 @@ popular WebAssembly runtimes.
 - [dart2wasmtime](./dart2wasmtime/) runs Dart on [wasmtime](https://wasmtime.dev) with a
   configurable Rust embedder.
 
+To target WASI and the [component model](https://component-model.bytecodealliance.org/), see
+[wasm.dart](https://github.com/simolus3/wasm.dart/).
+
 ## Running examples
 
 The JVM examples can be run through Gradle, which also compiles Dart to WebAssembly:
