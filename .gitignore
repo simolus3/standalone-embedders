@@ -3,4 +3,5 @@
 demos/*.wasm
 demos/*.map
 build/
+!/build-logic/plugin/src/main/java/eu/simonbinder/build
 .gradle/
