@@ -1,11 +1,11 @@
 use core::mem;
 
-use alloc::{boxed::Box, format, string::String};
-use wasmtime::{Caller, ExternRef, Result, Rooted, StoreContext, bail, format_err};
+use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
+use wasmtime::{Caller, ExternRef, Result, Rooted, StoreContext, Val, bail, format_err};
 
 use crate::{
     DartEmbedder,
-    utils::{externref_mut, externref_ref, null_check},
+    utils::{externref_mut, externref_ref, null_check, null_check_ref},
 };
 
 #[derive(Clone, Default, PartialEq, PartialOrd, Eq, Ord)]
@@ -20,6 +20,65 @@ impl DartString {
         r: &Rooted<ExternRef>,
     ) -> Result<&'a Self> {
         externref_ref(ctx, r)
+    }
+
+    pub fn func_from_ascii_bytes<'a, E: DartEmbedder>(
+        mut caller: Caller<'_, E>,
+        args: &[Val],
+        results: &mut [Val],
+    ) -> Result<()> {
+        let char_codes = null_check_ref(args[0].unwrap_anyref())?.unwrap_array(&caller)?;
+        let start = args[1].unwrap_i32();
+        let length = args[2].unwrap_i32();
+
+        let bytes = if start == 0 && length as u32 == char_codes.len(&caller)? {
+            let mut bytes = vec![0; length as usize].into_boxed_slice();
+            char_codes.copy_to_i8_slice(&mut caller, &mut bytes)?;
+            bytes
+        } else {
+            let mut bytes = Box::new_uninit_slice(length as usize);
+            for i in 0..length {
+                let value = char_codes.get(&mut caller, (start + i) as u32)?;
+                bytes[i as usize].write(value.unwrap_i32() as u8);
+            }
+
+            unsafe { bytes.assume_init() }
+        };
+
+        let contents: Box<str> = unsafe {
+            // SAFETY: All bytes have been initialized with ASCII characters above,
+            // which makes them valid UTF-8.
+            alloc::str::from_boxed_utf8_unchecked(bytes)
+        };
+
+        results[0] = Val::ExternRef(Some(ExternRef::new(
+            &mut caller,
+            DartString::from(contents),
+        )?));
+        Ok(())
+    }
+
+    pub fn func_from_char_code_array<'a, E: DartEmbedder>(
+        mut caller: Caller<'_, E>,
+        args: &[Val],
+        results: &mut [Val],
+    ) -> Result<()> {
+        let char_codes = null_check_ref(args[0].unwrap_anyref())?.unwrap_array(&caller)?;
+        let start = args[1].unwrap_i32() as u32;
+        let length = args[2].unwrap_i32() as u32;
+
+        let mut elements = Vec::with_capacity(usize::try_from(length)?);
+        for i in 0..length {
+            let code_unit = char_codes.get(&mut caller, start + i)?;
+            elements.push(code_unit.unwrap_i32() as u16);
+        }
+        let string = String::from_utf16(&elements)?;
+
+        results[0] = Val::ExternRef(Some(ExternRef::new(
+            &mut caller,
+            DartString::from(string.into_boxed_str()),
+        )?));
+        Ok(())
     }
 
     pub fn func_string_length<E: DartEmbedder>(

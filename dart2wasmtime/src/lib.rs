@@ -3,7 +3,6 @@ extern crate alloc;
 
 use core::time::Duration;
 
-use alloc::{boxed::Box, vec};
 use wasmtime::{
     AnyRef, ArrayRef, ArrayRefPre, AsContextMut, Caller, ExternRef, ExternType, HeapType, Instance,
     Linker, Module, Result, Rooted, Val, ValType, bail, format_err,
@@ -12,7 +11,7 @@ use wasmtime::{
 use crate::{
     stack_trace::StackTrace,
     string::{DartString, StringBuffer},
-    utils::{null_check, null_check_ref},
+    utils::null_check,
 };
 
 pub use event_loop::{DartCallback, DartSchedule};
@@ -98,38 +97,15 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
                     "dart",
                     import.name(),
                     fn_ty,
-                    |mut caller: Caller<'_, E>, args: &[Val], results: &mut [Val]| {
-                        let char_codes =
-                            null_check_ref(args[0].unwrap_anyref())?.unwrap_array(&caller)?;
-                        let start = args[1].unwrap_i32();
-                        let length = args[2].unwrap_i32();
-
-                        let bytes = if start == 0 && length as u32 == char_codes.len(&caller)? {
-                            let mut bytes = vec![0; length as usize].into_boxed_slice();
-                            char_codes.copy_to_i8_slice(&mut caller, &mut bytes)?;
-                            bytes
-                        } else {
-                            let mut bytes = Box::new_uninit_slice(length as usize);
-                            for i in 0..length {
-                                let value = char_codes.get(&mut caller, (start + i) as u32)?;
-                                bytes[i as usize].write(value.unwrap_i32() as u8);
-                            }
-
-                            unsafe { bytes.assume_init() }
-                        };
-
-                        let contents: Box<str> = unsafe {
-                            // SAFETY: All bytes have been initialized with ASCII characters above,
-                            // which makes them valid UTF-8.
-                            alloc::str::from_boxed_utf8_unchecked(bytes)
-                        };
-
-                        results[0] = Val::ExternRef(Some(ExternRef::new(
-                            &mut caller,
-                            DartString::from(contents),
-                        )?));
-                        Ok(())
-                    },
+                    DartString::func_from_ascii_bytes,
+                )?;
+            }
+            "stringFromCharCodeArray" => {
+                linker.func_new(
+                    "dart",
+                    import.name(),
+                    fn_ty,
+                    DartString::func_from_char_code_array,
                 )?;
             }
             "stringLength" => {
