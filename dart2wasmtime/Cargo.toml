@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+libm = "0.2.16"
+ryu-js = "1.0.3"
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 wasmtime = { version = ">=48, <50", default-features = false, features = ["runtime", "gc"] }
 

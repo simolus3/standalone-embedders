@@ -1,0 +1,52 @@
+pow(2, 10): true
+pow(2, 0.5): true
+pow(9, 0.5): true
+pow(2, -1): true
+pow(0, 0): true
+pow(e, 1): true
+pow(-1, 0.5) is NaN: true
+atan2(0, 1): true
+atan2(1, 1): true
+atan2(1, 0): true
+atan2(0, -1): true
+atan2(-1, -1): true
+sin(0): true
+sin(pi / 6): true
+sin(pi / 2): true
+sin(pi): true
+sin(-pi / 2): true
+sin(infinity) is NaN: true
+cos(0): true
+cos(pi / 3): true
+cos(pi / 2): true
+cos(pi): true
+cos(infinity) is NaN: true
+tan(0): true
+tan(pi / 4): true
+tan(-pi / 4): true
+tan(pi): true
+acos(1): true
+acos(0): true
+acos(-1): true
+acos(0.5): true
+acos(2) is NaN: true
+asin(0): true
+asin(1): true
+asin(-1): true
+asin(0.5): true
+asin(2) is NaN: true
+atan(0): true
+atan(1): true
+atan(-1): true
+atan(infinity): true
+exp(0): true
+exp(1): true
+exp(ln2): true
+exp(-infinity): true
+exp(infinity): Infinity
+log(1): true
+log(e): true
+log(2): true
+log(10): true
+log(0): -Infinity
+log(-1) is NaN: true

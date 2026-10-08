@@ -17,6 +17,7 @@ use crate::{
 pub use event_loop::{DartCallback, DartSchedule};
 
 mod event_loop;
+mod numbers;
 mod stack_trace;
 mod string;
 pub mod utils;
@@ -120,6 +121,12 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
             "stringCodeUnitAt" => {
                 linker.func_wrap("dart", import.name(), DartString::func_string_code_unit_at)?;
             }
+            "doubleTryParse" => {
+                linker.func_wrap("dart", import.name(), numbers::func_double_try_parse)?;
+            }
+            "tryParseResultGetDouble" => {
+                linker.func_wrap("dart", import.name(), numbers::func_parse_result_get_double)?;
+            }
             "i64ToString" => {
                 linker.func_wrap(
                     "dart",
@@ -131,6 +138,9 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
                         ExternRef::new(&mut caller, DartString::from_i64(value, radix)?)
                     },
                 )?;
+            }
+            "f64ToString" => {
+                linker.func_wrap("dart", import.name(), numbers::func_f64_to_string)?;
             }
             "stringBufferCreate" => {
                 linker.func_wrap("dart", import.name(), StringBuffer::func_new)?;
@@ -168,6 +178,36 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
             }
             "stackTraceToString" => {
                 linker.func_wrap("dart", import.name(), StackTrace::func_to_string)?;
+            }
+            "mathPow" => {
+                linker.func_wrap("dart", import.name(), libm::pow)?;
+            }
+            "mathAtan2" => {
+                linker.func_wrap("dart", import.name(), libm::atan2)?;
+            }
+            "mathSin" => {
+                linker.func_wrap("dart", import.name(), libm::sin)?;
+            }
+            "mathCos" => {
+                linker.func_wrap("dart", import.name(), libm::cos)?;
+            }
+            "mathTan" => {
+                linker.func_wrap("dart", import.name(), libm::tan)?;
+            }
+            "mathAsin" => {
+                linker.func_wrap("dart", import.name(), libm::asin)?;
+            }
+            "mathAcos" => {
+                linker.func_wrap("dart", import.name(), libm::acos)?;
+            }
+            "mathAtan" => {
+                linker.func_wrap("dart", import.name(), libm::atan)?;
+            }
+            "mathExp" => {
+                linker.func_wrap("dart", import.name(), libm::exp)?;
+            }
+            "mathLog" => {
+                linker.func_wrap("dart", import.name(), libm::log)?;
             }
             "randomInt" => {
                 linker.func_wrap(

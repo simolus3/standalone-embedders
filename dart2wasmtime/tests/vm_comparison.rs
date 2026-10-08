@@ -122,6 +122,11 @@ impl DartEmbedder for TestEmbedder {
         self.microtasks.push_back(callback);
         Ok(())
     }
+
+    fn random_int(&mut self, _secure: bool) -> Result<i64> {
+        // chosen by fair dice roll, guaranteed to be random
+        Ok(4)
+    }
 }
 
 struct NopTimer;
