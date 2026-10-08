@@ -5,3 +5,7 @@ demos/*.map
 build/
 !/build-logic/plugin/src/main/java/eu/simonbinder/build
 .gradle/
+pubspec.lock
+.dart_tool
+
+endive-repository/
