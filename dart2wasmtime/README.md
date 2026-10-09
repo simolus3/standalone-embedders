@@ -54,6 +54,15 @@ Dart code can import additional functions that can be implemented in Rust (and
 added to the linker as usual).
 Dart can export extra functions as well, which can then be called from Rust.
 
+## Limitations
+
+Because `wasmtime` doesn't have weak references, `Expando`s, `WeakReference`s and `Finalizer`s don't
+currently work (they are emulated with strong references instead).
+
+Some double-to-string formatting routines (specifically `toExponential` and
+`toPrecision`) are implemented with Rust formatting, which doesn't exactly match
+what Dart expects.
+
 For more information, see [imports and exports].
 
 [standalone embedder]: https://github.com/dart-lang/sdk/blob/main/pkg/dart2wasm/docs/standalone.md
