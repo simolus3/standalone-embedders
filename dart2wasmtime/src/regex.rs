@@ -101,11 +101,13 @@ pub fn func_regexp_create_or_fail_with_string<E: DartEmbedder>(
     dot_all: i32,
 ) -> Result<Rooted<ExternRef>> {
     let string = DartString::from_externref(&caller, &null_check(string)?)?;
-    let mut flags = regress::Flags::default();
-    flags.multiline = multiline != 0;
-    flags.icase = case_sensitive == 0;
-    flags.unicode = unicode != 0;
-    flags.dot_all = dot_all != 0;
+    let flags = regress::Flags {
+        multiline: multiline != 0,
+        icase: case_sensitive == 0,
+        unicode: unicode != 0,
+        dot_all: dot_all != 0,
+        ..Default::default()
+    };
 
     Ok(match Regex::with_flags(string.as_ref(), flags) {
         Ok(regex) => ExternRef::new(caller, DartRegex { regex })?,

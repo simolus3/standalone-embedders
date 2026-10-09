@@ -1,9 +1,10 @@
+#![doc = include_str!("../README.md")]
 #![no_std]
 extern crate alloc;
 
 use core::time::Duration;
 
-use alloc::string::String;
+use alloc::{string::String, vec::Vec};
 use wasmtime::{
     AnyRef, ArrayRef, ArrayRefPre, AsContextMut, Caller, ExternRef, ExternType, HeapType, Instance,
     Linker, Module, Result, Rooted, Val, ValType, bail, format_err,
@@ -27,23 +28,39 @@ mod regex;
 mod stack_trace;
 mod stopwatch;
 mod string;
-pub mod utils;
+mod utils;
 
+/// A Dart runtime.
+///
+/// This implements event loop, randomness and other platform primitives used by the Dart SDK.
 pub trait DartEmbedder: 'static {
+    /// The type returned by [Self::schedule_once] and [Self::schedule_repeated].
     type Timer: DartSchedule;
 
+    /// Prints a line to the console, used to implement the `print()` function in Dart.
     fn print(&self, _msg: &str) -> Result<()> {
         bail!("print not implemented")
     }
 
+    /// Generates a random uniform 64-bit integer.
+    ///
+    /// If `secure` is false, this is used to seed a `Random()` instance in Dart. When `secure` is
+    /// enabled, this generates numbers for a `Random.secure()` instance.
     fn random_int(&mut self, _secure: bool) -> Result<i64> {
         bail!("Randomness not implemented")
     }
 
+    /// The duration since the unix epoch, used for `DateTime.now()` in Dart.
     fn unix_timestamp(&mut self) -> Result<Duration> {
         bail!("No time source")
     }
 
+    /// Schedules the [DartCallback] to be [DartCallback::invoke]d after the specified delay.
+    ///
+    /// The delay may be zero, which must not run the callback synchronously (but instead yield to
+    /// the event loop).
+    ///
+    /// The returned [Self::Timer] can be aborted from Dart.
     fn schedule_once(
         &mut self,
         _duration: Duration,
@@ -51,7 +68,13 @@ pub trait DartEmbedder: 'static {
     ) -> Result<Self::Timer> {
         bail!("scheduleOnce not implemented")
     }
-
+    /// Schedules the [DartCallback] to be [DartCallback::invoke]d after the specified delay, and
+    /// then in an interval with the same duration.
+    ///
+    /// The delay may be zero, which must not run the callback synchronously (but instead yield to
+    /// the event loop).
+    ///
+    /// The returned [Self::Timer] can be aborted from Dart.
     fn schedule_repeated(
         &mut self,
         _duration: Duration,
@@ -60,18 +83,22 @@ pub trait DartEmbedder: 'static {
         bail!("scheduleOnce not implemented")
     }
 
+    /// Queues a [DartCallback] to be [DartCallback::invoke]d before reacting to any other event.
     fn queue_microtask(&mut self, _callback: DartCallback) -> Result<()> {
         bail!("queueMicrotask not implemented")
     }
 
+    /// The amount of ticks passed for a monotonic time source.
     fn monotonic_ticks(&mut self) -> Result<i64> {
         bail!("monotonic timer not implemented")
     }
 
+    /// Used to implement the `debugger()` function in `dart:developer`.
     fn debugger(&mut self) -> Result<()> {
         Ok(())
     }
 
+    /// Used to implement the `inspect()` function in `dart:developer`.
     fn inspect(&self, _obj: Option<Rooted<AnyRef>>) -> Result<()> {
         Ok(())
     }
@@ -81,7 +108,7 @@ pub trait DartEmbedder: 'static {
     /// Dart queries this to determine whether `Uri.toFilePath` should use forward or backward
     /// slashes.
     fn is_windows(&self) -> bool {
-        if cfg!(windows) { true } else { false }
+        cfg!(windows)
     }
 
     /// The base URI.
@@ -107,6 +134,8 @@ pub trait DartEmbedder: 'static {
     const MONOTONIC_FREQUENCY: StopwatchFrequency = StopwatchFrequency::MegaHertz;
 }
 
+/// Iterates through function imports of the module, adding implementations for those used by the
+/// Dart SDK.
 pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module) -> Result<()> {
     for import in module.imports() {
         if import.module() != "dart" {
@@ -487,7 +516,12 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
     Ok(())
 }
 
-pub fn invoke_main(instance: &Instance, store: &mut impl AsContextMut) -> Result<()> {
+/// Invokes the `main` function of a Dart program with the given arguments.
+pub fn invoke_main(
+    instance: &Instance,
+    store: &mut impl AsContextMut,
+    args: &[&str],
+) -> Result<()> {
     let func = instance
         .get_func(&mut *store, "$invokeMain")
         .ok_or_else(|| format_err!("Missing $invokeMain export"))?;
@@ -499,8 +533,25 @@ pub fn invoke_main(instance: &Instance, store: &mut impl AsContextMut) -> Result
     };
 
     let allocator = ArrayRefPre::new(&mut *store, arr_type.clone());
-    let array = ArrayRef::new(&mut *store, &allocator, &Val::I32(0), 0)?;
-    let array: Rooted<AnyRef> = array.into();
+
+    let mut args_refs = Vec::with_capacity(args.len());
+    for arg in args {
+        args_refs.push(DartString::new_externref(&mut *store, *arg)?);
+    }
+
+    let array: Rooted<AnyRef> = if args_refs.is_empty() {
+        ArrayRef::new(&mut *store, &allocator, &Val::I32(0), 0)?
+    } else {
+        let array = ArrayRef::new(&mut *store, &allocator, &Val::I32(0), args.len() as u32)?;
+
+        for (i, arg) in args_refs.iter().enumerate() {
+            let arg = AnyRef::convert_extern(&mut *store, *arg)?;
+            array.set(&mut *store, i as u32, Val::AnyRef(Some(arg)))?;
+        }
+
+        array
+    }
+    .into();
 
     func.call(&mut *store, &[Val::AnyRef(Some(array))], &mut [])?;
     Ok(())

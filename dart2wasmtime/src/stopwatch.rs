@@ -2,6 +2,7 @@ use crate::DartEmbedder;
 
 use wasmtime::{Caller, Result};
 
+/// Supported frequencies for timer ticks.
 pub enum StopwatchFrequency {
     /// The stopwatch timer runs at 1kHz, meaning that one tick corresponds to
     /// 1 millisecond.

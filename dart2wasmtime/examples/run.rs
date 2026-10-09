@@ -31,6 +31,7 @@ struct Args {
     instantiate_only: bool,
 }
 
+// Run with cargo run --example run <path to wasm>
 #[tokio::main(flavor = "current_thread")]
 pub async fn main() -> ExitCode {
     let args = Args::parse();
@@ -97,7 +98,7 @@ async fn run_dart_app(
 ) -> Result<()> {
     while let Some(event) = receiver.recv().await {
         match event {
-            DartEvent::Start { .. } => invoke_main(&instance, &mut store),
+            DartEvent::Start { .. } => invoke_main(&instance, &mut store, &[]),
             DartEvent::Timer(ref callback) => callback.invoke(&mut store),
         }
         .with_context(|| format!("Handling event {event:?}"))?;

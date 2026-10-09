@@ -80,6 +80,8 @@ impl DartCallback {
     }
 }
 
+/// Handle to a scheduled Dart timer.
 pub trait DartSchedule: 'static + Any + Send + Sync {
+    /// Called from Dart when `Timer.cancel` is called.
     fn clear_schedule(&mut self);
 }
