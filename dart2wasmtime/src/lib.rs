@@ -20,6 +20,7 @@ pub use stopwatch::StopwatchFrequency;
 
 mod developer;
 mod event_loop;
+mod gc;
 mod numbers;
 #[cfg(feature = "regex")]
 mod regex;
@@ -196,6 +197,12 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
             }
             "monotonicClockTicks" => {
                 linker.func_wrap("dart", import.name(), stopwatch::func_monotonic_clock_ticks)?;
+            }
+            "weakRefCreate" => {
+                linker.func_wrap("dart", import.name(), gc::func_weak_ref_create)?;
+            }
+            "weakRefGet" => {
+                linker.func_wrap("dart", import.name(), gc::func_weak_ref_get)?;
             }
             "doubleTryParse" => {
                 linker.func_wrap("dart", import.name(), numbers::func_double_try_parse)?;

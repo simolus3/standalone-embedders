@@ -58,8 +58,8 @@ apps work.
 | `stringToCodeUnits`                        | ✅ |
 | `monotonicClockFrequency`                  | ✅ |
 | `monotonicClockTicks`                      | ✅ |
-| `weakRefCreate`                            | ❌ |
-| `weakRefGet`                               | ❌ |
+| `weakRefCreate`                            | ✅ |
+| `weakRefGet`                               | ✅ |
 | `expandoCreate`                            | ❌ |
 | `expandoGet`                               | ❌ |
 | `expandoSet`                               | ❌ |
