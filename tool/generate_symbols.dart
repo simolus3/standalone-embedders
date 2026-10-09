@@ -47,12 +47,21 @@ void main() {
   // Names are wrapped in backticks, which adds two characters.
   final nameWidth = max(longestNameLength + 2, 'Symbol'.length);
 
+  final unknownCaveats = _caveats.keys.where((name) => !names.contains(name));
+  if (unknownCaveats.isNotEmpty) {
+    stderr.writeln('Caveats for unknown symbols: ${unknownCaveats.join(', ')}');
+    exit(1);
+  }
+
   final table = StringBuffer()
-    ..writeln('| ${'Symbol'.padRight(nameWidth)} | Supported |')
-    ..writeln('| ${'-' * nameWidth} | --------- |');
+    ..writeln('| ${'Symbol'.padRight(nameWidth)} | Supported | Notes |')
+    ..writeln('| ${'-' * nameWidth} | --------- | ----- |');
   for (final name in names) {
-    final status = supportedByRust(name) ? '✅' : '❌';
-    table.writeln('| ${'`$name`'.padRight(nameWidth)} | $status |');
+    final status = _caveats.containsKey(name)
+        ? '🤷'
+        : (supportedByRust(name) ? '✅' : '❌');
+    final caveat = _caveats[name] ?? '';
+    table.writeln('| ${'`$name`'.padRight(nameWidth)} | $status | $caveat |');
   }
 
   final readme = File('README.md');
@@ -66,3 +75,23 @@ void main() {
 
   readme.writeAsStringSync(contents.replaceRange(start.end, end, '$table'));
 }
+
+const _caveats = {
+  'timelineStreamEnabled': 'Noop',
+  'reportTaskEvent': 'Noop',
+  'weakRefCreate': _noWeakRefs,
+  'weakRefGet': _noWeakRefs,
+  'expandoCreate': _noWeakRefs,
+  'expandoGet': _noWeakRefs,
+  'expandoSet': _noWeakRefs,
+  'finalizerCreate': _noFinalizers,
+  'finalizerAttach': _noFinalizers,
+  'finalizerDetach': _noFinalizers,
+  'f64ToExponential': _formattingIssues,
+  'f64ToExponentialWithFractionDigits': _formattingIssues,
+  'f64ToPrecision': _formattingIssues,
+};
+
+const _noWeakRefs = 'Uses strong references due to wasmtime limitation';
+const _noFinalizers = 'Noop due to wasmtime limitation';
+const _formattingIssues = "Rounds exact ties to even instead of up";

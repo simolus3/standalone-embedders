@@ -255,6 +255,19 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
                     },
                 )?;
             }
+            "f64ToExponential" => {
+                linker.func_wrap("dart", import.name(), numbers::func_f64_to_exponential)?;
+            }
+            "f64ToExponentialWithFractionDigits" => {
+                linker.func_wrap(
+                    "dart",
+                    import.name(),
+                    numbers::func_f64_to_exponential_with_fraction_digits,
+                )?;
+            }
+            "f64ToPrecision" => {
+                linker.func_wrap("dart", import.name(), numbers::func_f64_to_precision)?;
+            }
             "f64ToFixed" => {
                 linker.func_wrap("dart", import.name(), numbers::func_f64_to_fixed)?;
             }
