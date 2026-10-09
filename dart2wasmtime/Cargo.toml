@@ -13,6 +13,7 @@ ryu-js = "1.0.3"
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 wasmtime = { version = ">=48, <50", default-features = false, features = ["runtime", "gc"] }
 regress = { version = "0.12", optional = true }
+hashbrown = { version = "0.17.0",  }
 
 [dev-dependencies]
 clap = { version = "4.6.7", features = ["derive"] }

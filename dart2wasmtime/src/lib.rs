@@ -204,6 +204,24 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
             "weakRefGet" => {
                 linker.func_wrap("dart", import.name(), gc::func_weak_ref_get)?;
             }
+            "expandoCreate" => {
+                linker.func_wrap("dart", import.name(), gc::func_expando_create)?;
+            }
+            "expandoGet" => {
+                linker.func_wrap("dart", import.name(), gc::func_expando_get)?;
+            }
+            "expandoSet" => {
+                linker.func_wrap("dart", import.name(), gc::func_expando_set)?;
+            }
+            "finalizerCreate" => {
+                linker.func_new("dart", import.name(), fn_ty, gc::func_finalizer_create)?;
+            }
+            "finalizerAttach" => {
+                linker.func_wrap("dart", import.name(), gc::func_finalizer_attach)?;
+            }
+            "finalizerDetach" => {
+                linker.func_wrap("dart", import.name(), gc::func_finalizer_detach)?;
+            }
             "doubleTryParse" => {
                 linker.func_wrap("dart", import.name(), numbers::func_double_try_parse)?;
             }
