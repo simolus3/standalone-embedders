@@ -3,6 +3,7 @@ extern crate alloc;
 
 use core::time::Duration;
 
+use alloc::string::String;
 use wasmtime::{
     AnyRef, ArrayRef, ArrayRefPre, AsContextMut, Caller, ExternRef, ExternType, HeapType, Instance,
     Linker, Module, Result, Rooted, Val, ValType, bail, format_err,
@@ -72,6 +73,21 @@ pub trait DartEmbedder: 'static {
 
     fn inspect(&self, _obj: Option<Rooted<AnyRef>>) -> Result<()> {
         Ok(())
+    }
+
+    /// Whether we're running on Windows.
+    ///
+    /// Dart queries this to determine whether `Uri.toFilePath` should use forward or backward
+    /// slashes.
+    fn is_windows(&self) -> bool {
+        if cfg!(windows) { true } else { false }
+    }
+
+    /// The base URI.
+    ///
+    /// This typically is the path of the running Dart entrypoint.
+    fn base_uri(&self) -> Result<String> {
+        bail!("base_uri not supported")
     }
 
     /// The frequency in which [Self::monotonic_ticks] are incremented.
@@ -238,6 +254,21 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
                         embedder.print(str.as_ref())
                     },
                 )?;
+            }
+            "baseUri" => {
+                linker.func_wrap(
+                    "dart",
+                    import.name(),
+                    |caller: Caller<'_, E>| -> Result<Option<Rooted<ExternRef>>> {
+                        let base_uri = caller.data().base_uri()?;
+                        Ok(Some(DartString::new_externref(caller, base_uri)?))
+                    },
+                )?;
+            }
+            "isWindows" => {
+                linker.func_wrap("dart", import.name(), |caller: Caller<'_, E>| -> i32 {
+                    if caller.data().is_windows() { 1 } else { 0 }
+                })?;
             }
             "stackTraceGetCurrent" => {
                 linker.func_wrap("dart", import.name(), StackTrace::func_current)?;

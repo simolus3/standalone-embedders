@@ -5,10 +5,10 @@ use std::{
     time::{Instant, SystemTime},
 };
 
+use clap::Parser;
 use dart2wasmtime::{
     DartCallback, DartEmbedder, DartSchedule, StopwatchFrequency, add_dart_imports, invoke_main,
 };
-use clap::Parser;
 use rand::Rng;
 use tokio::{
     spawn,

@@ -66,8 +66,8 @@ apps work.
 | `finalizerCreate`                          | ❌ |
 | `finalizerAttach`                          | ❌ |
 | `finalizerDetach`                          | ❌ |
-| `baseUri`                                  | ❌ |
-| `isWindows`                                | ❌ |
+| `baseUri`                                  | ✅ |
+| `isWindows`                                | ✅ |
 | `stackTraceGetCurrent`                     | ✅ |
 | `stackTraceToString`                       | ✅ |
 | `doubleTryParse`                           | ✅ |
