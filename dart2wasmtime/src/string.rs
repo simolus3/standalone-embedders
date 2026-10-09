@@ -96,7 +96,7 @@ impl DartString {
     }
 
     /// Converts a Dart (UTF-16 code unit) index into a byte offset into [Self::contents].
-    fn byte_offset(&self, index: i32) -> Result<usize> {
+    pub(crate) fn byte_offset(&self, index: i32) -> Result<usize> {
         let index = usize::try_from(index)?;
         let mut utf16_offset = 0;
         for (byte_offset, char) in self.contents.char_indices() {
@@ -118,7 +118,7 @@ impl DartString {
     }
 
     /// Converts a byte offset into [Self::contents] into a Dart (UTF-16 code unit) index.
-    fn utf16_index(&self, byte_offset: usize) -> i32 {
+    pub(crate) fn utf16_index(&self, byte_offset: usize) -> i32 {
         self.contents[..byte_offset]
             .chars()
             .map(char::len_utf16)

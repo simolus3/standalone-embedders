@@ -3,11 +3,16 @@ name = "dart2wasmtime"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+regex = ["dep:regress"]
+default = ["regex"]
+
 [dependencies]
 libm = "0.2.16"
 ryu-js = "1.0.3"
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 wasmtime = { version = ">=48, <50", default-features = false, features = ["runtime", "gc"] }
+regress = { version = "0.12", optional = true }
 
 [dev-dependencies]
 clap = { version = "4.6.7", features = ["derive"] }

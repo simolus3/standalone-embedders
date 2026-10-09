@@ -20,6 +20,8 @@ pub use stopwatch::StopwatchFrequency;
 mod developer;
 mod event_loop;
 mod numbers;
+#[cfg(feature = "regex")]
+mod regex;
 mod stack_trace;
 mod stopwatch;
 mod string;
@@ -309,6 +311,70 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
             }
             "reportTaskEvent" => {
                 linker.func_wrap("dart", import.name(), developer::func_report_task_event)?;
+            }
+            #[cfg(feature = "regex")]
+            "stringReplaceAllRegExp" => {
+                linker.func_wrap("dart", import.name(), regex::func_string_replace_all_regexp)?;
+            }
+            #[cfg(feature = "regex")]
+            "regexpCreateOrFailWithString" => {
+                linker.func_wrap(
+                    "dart",
+                    import.name(),
+                    regex::func_regexp_create_or_fail_with_string,
+                )?;
+            }
+            #[cfg(feature = "regex")]
+            "regexpIsRegexp" => {
+                linker.func_wrap("dart", import.name(), regex::func_regexp_is_regexp)?;
+            }
+            #[cfg(feature = "regex")]
+            "regexpEscape" => {
+                linker.func_wrap("dart", import.name(), regex::func_regexp_escape)?;
+            }
+            #[cfg(feature = "regex")]
+            "regexpMatch" => {
+                linker.func_wrap("dart", import.name(), regex::func_regexp_match)?;
+            }
+            #[cfg(feature = "regex")]
+            "regexpMatchGetStart" => {
+                linker.func_wrap("dart", import.name(), regex::func_regexp_match_get_start)?;
+            }
+            #[cfg(feature = "regex")]
+            "regexpMatchGetEnd" => {
+                linker.func_wrap("dart", import.name(), regex::func_regexp_match_get_end)?;
+            }
+            #[cfg(feature = "regex")]
+            "regexpMatchGetGroupCount" => {
+                linker.func_wrap("dart", import.name(), regex::func_regexp_match_group_count)?;
+            }
+            #[cfg(feature = "regex")]
+            "regexpMatchGetGroup" => {
+                linker.func_wrap("dart", import.name(), regex::func_regexp_match_group)?;
+            }
+            #[cfg(feature = "regex")]
+            "regexpMatchGetNamedGroups" => {
+                linker.func_wrap(
+                    "dart",
+                    import.name(),
+                    regex::func_regexp_match_get_named_groups,
+                )?;
+            }
+            #[cfg(feature = "regex")]
+            "regexpMatchGetGroupName" => {
+                linker.func_wrap(
+                    "dart",
+                    import.name(),
+                    regex::func_regexp_match_get_group_name,
+                )?;
+            }
+            #[cfg(feature = "regex")]
+            "regexpMatchGetGroupByName" => {
+                linker.func_wrap(
+                    "dart",
+                    import.name(),
+                    regex::func_regexp_match_get_group_by_name,
+                )?;
             }
             _ => bail!("Unknown Dart import: {}", import.name()),
         }
