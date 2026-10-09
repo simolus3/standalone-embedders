@@ -96,8 +96,8 @@ apps work.
 | `regexpMatchGetNamedGroups`                | ✅ |
 | `regexpMatchGetGroupName`                  | ✅ |
 | `regexpMatchGetGroupByName`                | ✅ |
-| `timeZoneNameForClampedSeconds`            | ❌ |
-| `timeZoneOffsetInSecondsForClampedSeconds` | ❌ |
+| `timeZoneNameForClampedSeconds`            | ✅ |
+| `timeZoneOffsetInSecondsForClampedSeconds` | ✅ |
 | `mathPow`                                  | ✅ |
 | `mathAtan2`                                | ✅ |
 | `mathSin`                                  | ✅ |

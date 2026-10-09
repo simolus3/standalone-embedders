@@ -9,6 +9,7 @@ use clap::Parser;
 use dart2wasmtime::{
     DartCallback, DartEmbedder, DartSchedule, StopwatchFrequency, add_dart_imports, invoke_main,
 };
+use jiff::{Timestamp, tz::TimeZone};
 use rand::Rng;
 use tokio::{
     spawn,
@@ -77,6 +78,7 @@ fn instantiate(
             sender: sender.downgrade(),
             microtasks: Default::default(),
             stopwatch_epoch: None,
+            time_zone: TimeZone::system(),
         },
     );
     let mut linker = Linker::<DemoDartEmbedder>::new(&engine);
@@ -120,9 +122,15 @@ struct DemoDartEmbedder {
     sender: WeakSender<DartEvent>,
     microtasks: VecDeque<DartCallback>,
     stopwatch_epoch: Option<Instant>,
+    time_zone: TimeZone,
 }
 
 impl DemoDartEmbedder {
+    fn time_zone_info(&self, seconds_since_epoch: i64) -> Result<jiff::tz::TimeZoneOffsetInfo<'_>> {
+        let timestamp = Timestamp::from_second(seconds_since_epoch)?;
+        Ok(self.time_zone.to_offset_info(timestamp))
+    }
+
     fn obtain_sender(&self) -> Result<Sender<DartEvent>> {
         self.sender
             .upgrade()
@@ -194,6 +202,17 @@ impl DartEmbedder for DemoDartEmbedder {
         let epoch = self.stopwatch_epoch.get_or_insert(now);
 
         Ok(epoch.duration_since(now).as_micros() as i64)
+    }
+
+    fn time_zone_name(&self, seconds_since_epoch: i64) -> Result<String> {
+        Ok(self
+            .time_zone_info(seconds_since_epoch)?
+            .abbreviation()
+            .to_string())
+    }
+
+    fn time_zone_offset_in_seconds(&self, seconds_since_epoch: i64) -> Result<i32> {
+        Ok(self.time_zone_info(seconds_since_epoch)?.offset().seconds())
     }
 
     const MONOTONIC_FREQUENCY: StopwatchFrequency = StopwatchFrequency::MegaHertz;

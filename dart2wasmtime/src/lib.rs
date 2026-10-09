@@ -91,6 +91,18 @@ pub trait DartEmbedder: 'static {
         bail!("base_uri not supported")
     }
 
+    /// The name of the local time zone (e.g. `CEST`) at the given instant.
+    fn time_zone_name(&self, _seconds_since_epoch: i64) -> Result<String> {
+        bail!("time zone names not implemented")
+    }
+
+    /// The offset of the local time zone from UTC, in seconds, at the given instant.
+    ///
+    /// Positive values are east of UTC (so local time is UTC plus this offset).
+    fn time_zone_offset_in_seconds(&self, _seconds_since_epoch: i64) -> Result<i32> {
+        bail!("time zone offset not implemented")
+    }
+
     /// The frequency in which [Self::monotonic_ticks] are incremented.
     const MONOTONIC_FREQUENCY: StopwatchFrequency = StopwatchFrequency::MegaHertz;
 }
@@ -287,6 +299,29 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
                     |caller: Caller<'_, E>| -> Result<Option<Rooted<ExternRef>>> {
                         let base_uri = caller.data().base_uri()?;
                         Ok(Some(DartString::new_externref(caller, base_uri)?))
+                    },
+                )?;
+            }
+            "timeZoneNameForClampedSeconds" => {
+                linker.func_wrap(
+                    "dart",
+                    import.name(),
+                    |caller: Caller<'_, E>,
+                     seconds_since_epoch: i64|
+                     -> Result<Rooted<ExternRef>> {
+                        let name = caller.data().time_zone_name(seconds_since_epoch)?;
+                        DartString::new_externref(caller, name)
+                    },
+                )?;
+            }
+            "timeZoneOffsetInSecondsForClampedSeconds" => {
+                linker.func_wrap(
+                    "dart",
+                    import.name(),
+                    |caller: Caller<'_, E>, seconds_since_epoch: i64| -> Result<i32> {
+                        caller
+                            .data()
+                            .time_zone_offset_in_seconds(seconds_since_epoch)
                     },
                 )?;
             }
