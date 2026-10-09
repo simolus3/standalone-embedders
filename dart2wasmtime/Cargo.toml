@@ -3,6 +3,12 @@ name = "dart2wasmtime"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
+description = "Run Dart modules compiled to WebAssembly with wasmtime"
+repository = "https://github.com/simolus3/standalone-embedders"
+homepage = "https://github.com/simolus3/standalone-embedders/tree/main/dart2wasmtime"
+readme = "README.md"
+keywords = ["dart"]
+categories = ["wasm"]
 
 [features]
 regex = ["dep:regress"]
