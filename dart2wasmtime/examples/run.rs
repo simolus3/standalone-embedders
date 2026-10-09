@@ -1,6 +1,14 @@
-use std::{collections::VecDeque, env, path::Path, process::ExitCode, time::SystemTime};
+use std::{
+    collections::VecDeque,
+    env,
+    path::Path,
+    process::ExitCode,
+    time::{Instant, SystemTime},
+};
 
-use dart2wasmtime::{DartCallback, DartEmbedder, DartSchedule, add_dart_imports, invoke_main};
+use dart2wasmtime::{
+    DartCallback, DartEmbedder, DartSchedule, StopwatchFrequency, add_dart_imports, invoke_main,
+};
 use tokio::{
     spawn,
     sync::mpsc::{self, Receiver, Sender, WeakSender},
@@ -63,6 +71,7 @@ fn instantiate(
         DemoDartEmbedder {
             sender: sender.downgrade(),
             microtasks: Default::default(),
+            stopwatch_epoch: None,
         },
     );
     let mut linker = Linker::<DemoDartEmbedder>::new(&engine);
@@ -70,7 +79,6 @@ fn instantiate(
     let module = Module::from_file(&engine, module)?;
     add_dart_imports(&mut linker, &module)?;
     let instance = linker.instantiate(&mut store, &module)?;
-    println!("Instantiated Dart app!");
 
     Ok((store, instance))
 }
@@ -106,6 +114,7 @@ enum DartEvent {
 struct DemoDartEmbedder {
     sender: WeakSender<DartEvent>,
     microtasks: VecDeque<DartCallback>,
+    stopwatch_epoch: Option<Instant>,
 }
 
 impl DemoDartEmbedder {
@@ -169,6 +178,15 @@ impl DartEmbedder for DemoDartEmbedder {
         now.duration_since(SystemTime::UNIX_EPOCH)
             .map_err(|_| format_err!("time before unix epoch??"))
     }
+
+    fn monotonic_ticks(&mut self) -> Result<i64> {
+        let now = Instant::now();
+        let epoch = self.stopwatch_epoch.get_or_insert(now);
+
+        Ok(epoch.duration_since(now).as_micros() as i64)
+    }
+
+    const MONOTONIC_FREQUENCY: StopwatchFrequency = StopwatchFrequency::MegaHertz;
 }
 
 struct DemoSchedule(JoinHandle<()>);

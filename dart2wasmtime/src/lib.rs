@@ -15,10 +15,12 @@ use crate::{
 };
 
 pub use event_loop::{DartCallback, DartSchedule};
+pub use stopwatch::StopwatchFrequency;
 
 mod event_loop;
 mod numbers;
 mod stack_trace;
+mod stopwatch;
 mod string;
 pub mod utils;
 
@@ -56,6 +58,13 @@ pub trait DartEmbedder: 'static {
     fn queue_microtask(&mut self, _callback: DartCallback) -> Result<()> {
         bail!("queueMicrotask not implemented")
     }
+
+    fn monotonic_ticks(&mut self) -> Result<i64> {
+        bail!("monotonic timer not implemented")
+    }
+
+    /// The frequency in which [Self::monotonic_ticks] are incremented.
+    const MONOTONIC_FREQUENCY: StopwatchFrequency = StopwatchFrequency::MegaHertz;
 }
 
 pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module) -> Result<()> {
@@ -150,6 +159,16 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
             }
             "stringToCodeUnits" => {
                 linker.func_new("dart", import.name(), fn_ty, DartString::func_to_code_units)?;
+            }
+            "monotonicClockFrequency" => {
+                linker.func_wrap(
+                    "dart",
+                    import.name(),
+                    stopwatch::func_monotonic_clock_frequency::<E>,
+                )?;
+            }
+            "monotonicClockTicks" => {
+                linker.func_wrap("dart", import.name(), stopwatch::func_monotonic_clock_ticks)?;
             }
             "doubleTryParse" => {
                 linker.func_wrap("dart", import.name(), numbers::func_double_try_parse)?;

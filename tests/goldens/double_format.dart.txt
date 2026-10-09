@@ -1,9 +1,0 @@
-3.0
-3.0
-Infinity
--Infinity
-NaN
-0
-0
-1.13
-1.25

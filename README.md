@@ -56,8 +56,8 @@ apps work.
 | `stringRepeat`                             | ✅ |
 | `stringReplaceRange`                       | ✅ |
 | `stringToCodeUnits`                        | ✅ |
-| `monotonicClockFrequency`                  | ❌ |
-| `monotonicClockTicks`                      | ❌ |
+| `monotonicClockFrequency`                  | ✅ |
+| `monotonicClockTicks`                      | ✅ |
 | `weakRefCreate`                            | ❌ |
 | `weakRefGet`                               | ❌ |
 | `expandoCreate`                            | ❌ |
