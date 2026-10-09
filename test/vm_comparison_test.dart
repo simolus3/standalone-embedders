@@ -32,7 +32,7 @@ void _defineComparisonTest(String Function() exampleRunner, File input) {
 
   setUpAll(() async {
     final output = await runProcess(Platform.resolvedExecutable, [input.path]);
-    if (output.stderr.isNotEmpty) {
+    if ((output.stderr as String).isNotEmpty) {
       throw 'Unexpected stderr: ${output.stderr}';
     }
 
