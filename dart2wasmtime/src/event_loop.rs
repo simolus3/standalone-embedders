@@ -73,10 +73,7 @@ pub struct DartCallback {
 
 impl DartCallback {
     pub fn invoke(&self, mut store: impl AsContextMut) -> Result<()> {
-        let arg = match self.arg {
-            None => None,
-            Some(ref arg) => Some(arg.to_rooted(&mut store)),
-        };
+        let arg = self.arg.as_ref().map(|arg| arg.to_rooted(&mut store));
 
         let param = Val::AnyRef(arg);
         self.callback.call(&mut store, &[param], &mut [])

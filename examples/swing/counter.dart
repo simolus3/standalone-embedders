@@ -7,7 +7,11 @@ import 'dart:_wasm';
 external WasmExternRef _newFrame(WasmExternRef title);
 
 @pragma('wasm:import', 'swing.frameShow')
-external WasmVoid _frameShow(WasmExternRef frame, WasmI32 width, WasmI32 height);
+external WasmVoid _frameShow(
+  WasmExternRef frame,
+  WasmI32 width,
+  WasmI32 height,
+);
 
 @pragma('wasm:import', 'swing.newLabel')
 external WasmExternRef _newLabel(WasmExternRef text);
@@ -29,7 +33,11 @@ external WasmVoid _addActionListener(
 external WasmVoid _setToolTipText(WasmExternRef component, WasmExternRef text);
 
 @pragma('wasm:import', 'swing.setFont')
-external WasmVoid _setFont(WasmExternRef component, WasmI32 style, WasmI32 size);
+external WasmVoid _setFont(
+  WasmExternRef component,
+  WasmI32 style,
+  WasmI32 size,
+);
 
 @pragma('wasm:import', 'swing.setEmptyBorder')
 external WasmVoid _setEmptyBorder(

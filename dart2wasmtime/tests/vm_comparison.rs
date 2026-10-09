@@ -81,7 +81,7 @@ fn compile(program: &Path, out_dir: &Path) -> Result<PathBuf> {
         .arg(program)
         .arg("-E--no-strip-wasm")
         .output()
-        .with_context(|| format!("Running dart"))?;
+        .context("Running dart")?;
     if !result.status.success() {
         return Err(format_err!(
             "dart compile wasm failed ({}):\n{}{}",

@@ -24,7 +24,7 @@ impl DartString {
         externref_ref(ctx, r)
     }
 
-    pub fn func_from_ascii_bytes<'a, E: DartEmbedder>(
+    pub fn func_from_ascii_bytes<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
         args: &[Val],
         results: &mut [Val],
@@ -60,7 +60,7 @@ impl DartString {
         Ok(())
     }
 
-    pub fn func_from_char_code_array<'a, E: DartEmbedder>(
+    pub fn func_from_char_code_array<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
         args: &[Val],
         results: &mut [Val],

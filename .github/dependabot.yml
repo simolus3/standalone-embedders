@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: quarterly
+    versioning-strategy: lockfile-only
+    groups:
+      cargo:
+        patterns: ["*"]
+
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: quarterly
+    versioning-strategy: increase-if-necessary
+    groups:
+      pub:
+        patterns: ["*"]
