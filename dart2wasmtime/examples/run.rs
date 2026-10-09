@@ -9,6 +9,7 @@ use std::{
 use dart2wasmtime::{
     DartCallback, DartEmbedder, DartSchedule, StopwatchFrequency, add_dart_imports, invoke_main,
 };
+use rand::Rng;
 use tokio::{
     spawn,
     sync::mpsc::{self, Receiver, Sender, WeakSender},
@@ -177,6 +178,11 @@ impl DartEmbedder for DemoDartEmbedder {
         let now = SystemTime::now();
         now.duration_since(SystemTime::UNIX_EPOCH)
             .map_err(|_| format_err!("time before unix epoch??"))
+    }
+
+    fn random_int(&mut self, _secure: bool) -> Result<i64> {
+        let mut rng = rand::rng();
+        Ok(rng.next_u64() as i64)
     }
 
     fn monotonic_ticks(&mut self) -> Result<i64> {

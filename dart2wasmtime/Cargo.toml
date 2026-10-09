@@ -12,3 +12,4 @@ wasmtime = { version = ">=48, <50", default-features = false, features = ["runti
 [dev-dependencies]
 wasmtime = "49"
 tokio = { version = "1.53", features = ["rt", "macros", "time", "sync"] }
+rand = "0.10.3"

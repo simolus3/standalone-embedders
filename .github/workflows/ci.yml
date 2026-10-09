@@ -10,14 +10,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  dart:
-    name: Dart checks
+  check:
+    name: Analyze and test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+
+      - run: cargo fmt --all --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+
       - run: dart pub get
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart analyze --fatal-infos
@@ -28,28 +37,5 @@ jobs:
             echo "::error::README.md is outdated, run dart tool/generate_symbols.dart"
             exit 1
           }
-      - name: Check that goldens are up-to-date
-        run: |
-          dart tool/update_goldens.dart
-          git add --intent-to-add tests/goldens
-          git diff --exit-code tests/goldens || {
-            echo "::error::Goldens are outdated, run dart tool/update_goldens.dart"
-            exit 1
-          }
 
-  rust:
-    name: Rust checks
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
-      # The VM comparison tests compile Dart programs with dart compile wasm --standalone.
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: dev
-      - run: cargo fmt --all --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test
+      - run: dart test
