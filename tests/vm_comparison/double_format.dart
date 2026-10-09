@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:convert';
 
 void main() {
   print(3.0);
@@ -10,7 +10,7 @@ void main() {
   print(0);
   print(-0);
 
-  // We just need this to not crash
-  Random().nextDouble();
-  Random.secure().nextDouble();
+  print(1.125.toStringAsFixed(2));
+
+  print(json.decode('1.25'));
 }

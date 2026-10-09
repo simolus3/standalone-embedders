@@ -121,11 +121,44 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
             "stringCodeUnitAt" => {
                 linker.func_wrap("dart", import.name(), DartString::func_string_code_unit_at)?;
             }
+            "stringIndexOfString" => {
+                linker.func_wrap("dart", import.name(), DartString::func_index_of_string)?;
+            }
+            "stringLastIndexOfString" => {
+                linker.func_wrap("dart", import.name(), DartString::func_last_index_of_string)?;
+            }
+            "stringReplaceAllString" => {
+                linker.func_wrap("dart", import.name(), DartString::func_replace_all_string)?;
+            }
+            "stringSubstring" => {
+                linker.func_wrap("dart", import.name(), DartString::func_substring)?;
+            }
+            "stringToLowerCase" => {
+                linker.func_wrap("dart", import.name(), DartString::func_to_lower_case)?;
+            }
+            "stringToUpperCase" => {
+                linker.func_wrap("dart", import.name(), DartString::func_to_upper_case)?;
+            }
+            "stringConcat" => {
+                linker.func_wrap("dart", import.name(), DartString::func_concat)?;
+            }
+            "stringRepeat" => {
+                linker.func_wrap("dart", import.name(), DartString::func_repeat)?;
+            }
+            "stringReplaceRange" => {
+                linker.func_wrap("dart", import.name(), DartString::func_replace_range)?;
+            }
+            "stringToCodeUnits" => {
+                linker.func_new("dart", import.name(), fn_ty, DartString::func_to_code_units)?;
+            }
             "doubleTryParse" => {
                 linker.func_wrap("dart", import.name(), numbers::func_double_try_parse)?;
             }
             "tryParseResultGetDouble" => {
                 linker.func_wrap("dart", import.name(), numbers::func_parse_result_get_double)?;
+            }
+            "doubleParseInfallible" => {
+                linker.func_wrap("dart", import.name(), numbers::func_double_parse_infallible)?;
             }
             "i64ToString" => {
                 linker.func_wrap(
@@ -138,6 +171,9 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
                         ExternRef::new(&mut caller, DartString::from_i64(value, radix)?)
                     },
                 )?;
+            }
+            "f64ToFixed" => {
+                linker.func_wrap("dart", import.name(), numbers::func_f64_to_fixed)?;
             }
             "f64ToString" => {
                 linker.func_wrap("dart", import.name(), numbers::func_f64_to_string)?;

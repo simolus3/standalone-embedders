@@ -1,7 +1,9 @@
 use core::mem;
 
 use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
-use wasmtime::{Caller, ExternRef, Result, Rooted, StoreContext, Val, bail, format_err};
+use wasmtime::{
+    AsContextMut, Caller, ExternRef, Result, Rooted, StoreContext, Val, bail, format_err,
+};
 
 use crate::{
     DartEmbedder,
@@ -81,12 +83,54 @@ impl DartString {
         Ok(())
     }
 
+    pub fn new_externref(
+        caller: impl AsContextMut,
+        contents: impl Into<Box<str>>,
+    ) -> Result<Rooted<ExternRef>> {
+        ExternRef::new(caller, DartString::from(contents.into()))
+    }
+
+    /// The length of this string in UTF-16 code units, which is how Dart measures strings.
+    fn utf16_len(&self) -> usize {
+        self.contents.chars().map(char::len_utf16).sum()
+    }
+
+    /// Converts a Dart (UTF-16 code unit) index into a byte offset into [Self::contents].
+    fn byte_offset(&self, index: i32) -> Result<usize> {
+        let index = usize::try_from(index)?;
+        let mut utf16_offset = 0;
+        for (byte_offset, char) in self.contents.char_indices() {
+            if utf16_offset == index {
+                return Ok(byte_offset);
+            }
+
+            utf16_offset += char.len_utf16();
+            if utf16_offset > index {
+                bail!("Index {index} splits a surrogate pair, which is not supported");
+            }
+        }
+
+        if utf16_offset == index {
+            Ok(self.contents.len())
+        } else {
+            bail!("Index {index} out of bounds")
+        }
+    }
+
+    /// Converts a byte offset into [Self::contents] into a Dart (UTF-16 code unit) index.
+    fn utf16_index(&self, byte_offset: usize) -> i32 {
+        self.contents[..byte_offset]
+            .chars()
+            .map(char::len_utf16)
+            .sum::<usize>() as i32
+    }
+
     pub fn func_string_length<E: DartEmbedder>(
         caller: Caller<'_, E>,
         string: Option<Rooted<ExternRef>>,
     ) -> Result<i32> {
         let string: &Self = externref_ref(&caller, &null_check(string)?)?;
-        Ok(string.contents.len() as i32)
+        Ok(string.utf16_len() as i32)
     }
 
     pub fn func_string_equals<E: DartEmbedder>(
@@ -121,11 +165,163 @@ impl DartString {
         index: i32,
     ) -> Result<i32> {
         let string = Self::from_externref(&caller, &null_check(string)?)?;
-        let Some(char) = string.contents.chars().nth(index as usize) else {
+        let Some(code_unit) = string.contents.encode_utf16().nth(usize::try_from(index)?) else {
             bail!("out of bounds")
         };
 
-        Ok(char as i32)
+        Ok(code_unit as i32)
+    }
+
+    pub fn func_index_of_string<E: DartEmbedder>(
+        caller: Caller<'_, E>,
+        string: Option<Rooted<ExternRef>>,
+        needle: Option<Rooted<ExternRef>>,
+        start: i32,
+    ) -> Result<i32> {
+        let string = Self::from_externref(&caller, &null_check(string)?)?;
+        let needle = Self::from_externref(&caller, &null_check(needle)?)?;
+
+        let start = string.byte_offset(start)?;
+        Ok(match string.contents[start..].find(needle.as_ref()) {
+            Some(index) => string.utf16_index(start + index),
+            None => -1,
+        })
+    }
+
+    pub fn func_last_index_of_string<E: DartEmbedder>(
+        caller: Caller<'_, E>,
+        string: Option<Rooted<ExternRef>>,
+        needle: Option<Rooted<ExternRef>>,
+        start: i32,
+    ) -> Result<i32> {
+        let string = Self::from_externref(&caller, &null_check(string)?)?;
+        let needle = Self::from_externref(&caller, &null_check(needle)?)?;
+
+        // The Dart side clamps start to `length - needle.length`, which is negative if the needle
+        // is longer than the string.
+        if start < 0 {
+            return Ok(-1);
+        }
+
+        // Only consider matches starting at or before `start`. A match starting at `start` ends
+        // on a char boundary, so rounding down doesn't skip any valid match.
+        let start = string.byte_offset(start)?;
+        let mut end = (start + needle.contents.len()).min(string.contents.len());
+        while !string.contents.is_char_boundary(end) {
+            end -= 1;
+        }
+
+        Ok(match string.contents[..end].rfind(needle.as_ref()) {
+            Some(index) => string.utf16_index(index),
+            None => -1,
+        })
+    }
+
+    pub fn func_replace_all_string<E: DartEmbedder>(
+        mut caller: Caller<'_, E>,
+        string: Option<Rooted<ExternRef>>,
+        needle: Option<Rooted<ExternRef>>,
+        replacement: Option<Rooted<ExternRef>>,
+    ) -> Result<Option<Rooted<ExternRef>>> {
+        let string = Self::from_externref(&caller, &null_check(string)?)?;
+        let needle = Self::from_externref(&caller, &null_check(needle)?)?;
+        let replacement = Self::from_externref(&caller, &null_check(replacement)?)?;
+
+        let replaced = string
+            .as_ref()
+            .replace(needle.as_ref(), replacement.as_ref());
+        Ok(Some(Self::new_externref(&mut caller, replaced)?))
+    }
+
+    pub fn func_substring<E: DartEmbedder>(
+        mut caller: Caller<'_, E>,
+        string: Option<Rooted<ExternRef>>,
+        start: i32,
+        end: i32,
+    ) -> Result<Option<Rooted<ExternRef>>> {
+        let string = Self::from_externref(&caller, &null_check(string)?)?;
+        let start = string.byte_offset(start)?;
+        let end = string.byte_offset(end)?;
+        let Some(substring) = string.contents.get(start..end) else {
+            bail!("Invalid substring range")
+        };
+
+        let substring = Box::<str>::from(substring);
+        Ok(Some(Self::new_externref(&mut caller, substring)?))
+    }
+
+    pub fn func_to_lower_case<E: DartEmbedder>(
+        mut caller: Caller<'_, E>,
+        string: Option<Rooted<ExternRef>>,
+    ) -> Result<Option<Rooted<ExternRef>>> {
+        let string = Self::from_externref(&caller, &null_check(string)?)?;
+        let lower = string.contents.to_lowercase();
+        Ok(Some(Self::new_externref(&mut caller, lower)?))
+    }
+
+    pub fn func_to_upper_case<E: DartEmbedder>(
+        mut caller: Caller<'_, E>,
+        string: Option<Rooted<ExternRef>>,
+    ) -> Result<Option<Rooted<ExternRef>>> {
+        let string = Self::from_externref(&caller, &null_check(string)?)?;
+        let upper = string.contents.to_uppercase();
+        Ok(Some(Self::new_externref(&mut caller, upper)?))
+    }
+
+    pub fn func_concat<E: DartEmbedder>(
+        mut caller: Caller<'_, E>,
+        a: Option<Rooted<ExternRef>>,
+        b: Option<Rooted<ExternRef>>,
+    ) -> Result<Option<Rooted<ExternRef>>> {
+        let a = Self::from_externref(&caller, &null_check(a)?)?;
+        let b = Self::from_externref(&caller, &null_check(b)?)?;
+
+        let mut concat = String::with_capacity(a.contents.len() + b.contents.len());
+        concat.push_str(a.as_ref());
+        concat.push_str(b.as_ref());
+        Ok(Some(Self::new_externref(&mut caller, concat)?))
+    }
+
+    pub fn func_replace_range<E: DartEmbedder>(
+        mut caller: Caller<'_, E>,
+        string: Option<Rooted<ExternRef>>,
+        start: i32,
+        end: i32,
+        replacement: Option<Rooted<ExternRef>>,
+    ) -> Result<Option<Rooted<ExternRef>>> {
+        let string = Self::from_externref(&caller, &null_check(string)?)?;
+        let replacement = Self::from_externref(&caller, &null_check(replacement)?)?;
+
+        let start = string.byte_offset(start)?;
+        let end = string.byte_offset(end)?;
+        if start > end {
+            bail!("Invalid range to replace")
+        }
+
+        let mut replaced = String::from(string.as_ref());
+        replaced.replace_range(start..end, replacement.as_ref());
+        Ok(Some(Self::new_externref(&mut caller, replaced)?))
+    }
+
+    pub fn func_to_code_units<E: DartEmbedder>(
+        mut caller: Caller<'_, E>,
+        args: &[Val],
+        _results: &mut [Val],
+    ) -> Result<()> {
+        let string = null_check_ref(args[0].unwrap_externref())?;
+        let out = null_check_ref(args[1].unwrap_anyref())?.unwrap_array(&caller)?;
+        let start = args[2].unwrap_i32() as u32;
+
+        // Copy the code units first since we can't write to the array while borrowing the string.
+        let code_units: Vec<u16> = Self::from_externref(&caller, string)?
+            .contents
+            .encode_utf16()
+            .collect();
+
+        for (i, code_unit) in code_units.into_iter().enumerate() {
+            out.set(&mut caller, start + i as u32, Val::I32(code_unit as i32))?;
+        }
+        Ok(())
     }
 
     pub fn func_json_encode_string<E: DartEmbedder>(
@@ -138,7 +334,19 @@ impl DartString {
             Err(_) => bail!("Could not format json"),
         };
 
-        ExternRef::new(&mut caller, as_json.into_boxed_str())
+        Self::new_externref(&mut caller, as_json)
+    }
+
+    pub fn func_repeat<E: DartEmbedder>(
+        mut caller: Caller<'_, E>,
+        string: Option<Rooted<ExternRef>>,
+        amount: i32,
+    ) -> Result<Option<Rooted<ExternRef>>> {
+        let string = null_check(string)?;
+        let string = Self::from_externref(&caller, &string)?.as_ref();
+        let repeated = string.repeat(usize::try_from(amount)?);
+
+        Ok(Some(Self::new_externref(&mut caller, repeated)?))
     }
 
     /// Formats `value` like Dart's `int.toRadixString(radix)`: lowercase digits, with a leading

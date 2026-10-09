@@ -1,0 +1,34 @@
+13
+7
+-1
+17
+4
+0
+-1
+8
+19
+22
+27
+55358
+56704
+Hell0 w0rld, hell0 wasm
+Hello world, bye wasm
+crab crab and ☕️ and crab again
+world, hello wasm
+Hello
+🦀
+and ☕️ and 🦀 again
+hello world, hello wasm
+HELLO WORLD, HELLO WASM
+already lower
+äöü äöü
+ÄÖÜ ÄÖÜ
+Hello world, hello wasm!
+crab 🦀 and ☕️ and 🦀 again Hello world, hello wasm
+ababab
+🦀🦀
+Goodbye world, hello wasm
+crab CRAB and ☕️ and 🦀 again
+Hello, world, hello wasm
+héllo 🦀 é
+{key: [a, b]}

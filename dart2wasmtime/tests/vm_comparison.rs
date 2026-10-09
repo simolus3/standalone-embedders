@@ -79,6 +79,7 @@ fn compile(program: &Path, out_dir: &Path) -> Result<PathBuf> {
         .args(["compile", "wasm", "--standalone", "-o"])
         .arg(&wasm)
         .arg(program)
+        .arg("-E--no-strip-wasm")
         .output()
         .with_context(|| format!("Running dart"))?;
     if !result.status.success() {

@@ -89,4 +89,8 @@ void main() {
   check('log(10)', log(v(10)), ln10);
   print('log(0): ${log(v(0))}');
   checkNaN('log(-1)', log(v(-1)));
+
+  // Random, we can't put this into goldens but we need this to not crash.
+  Random().nextDouble();
+  Random.secure().nextDouble();
 }

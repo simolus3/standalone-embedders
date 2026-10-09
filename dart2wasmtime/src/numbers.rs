@@ -23,8 +23,18 @@ pub fn func_f64_to_string<'a, E: DartEmbedder>(
         Box::from(str)
     };
 
-    let dart = DartString::from(str);
-    ExternRef::new(caller, dart)
+    DartString::new_externref(caller, str)
+}
+
+pub fn func_f64_to_fixed<'a, E: DartEmbedder>(
+    caller: Caller<'a, E>,
+    value: f64,
+    fraction_digits: i32,
+) -> Result<Rooted<ExternRef>> {
+    let mut buffer = ryu_js::Buffer::new();
+    let str = buffer.format_to_fixed(value, fraction_digits as u8);
+
+    DartString::new_externref(caller, str)
 }
 
 pub fn func_double_try_parse<'a, E: DartEmbedder>(
@@ -48,4 +58,15 @@ pub fn func_parse_result_get_double<'a, E: DartEmbedder>(
     let value: &f64 = externref_ref(&caller, &source)?;
 
     Ok(*value)
+}
+
+pub fn func_double_parse_infallible<'a, E: DartEmbedder>(
+    mut caller: Caller<'a, E>,
+    source: Option<Rooted<ExternRef>>,
+) -> Result<f64> {
+    let source = null_check(source)?;
+    let dart = DartString::from_externref(&mut caller, &source)?;
+    let parsed: f64 = dart.as_ref().parse()?;
+
+    Ok(parsed)
 }
