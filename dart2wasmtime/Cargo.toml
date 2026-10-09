@@ -10,6 +10,7 @@ serde_json = { version = "1", default-features = false, features = ["alloc"] }
 wasmtime = { version = ">=48, <50", default-features = false, features = ["runtime", "gc"] }
 
 [dev-dependencies]
+clap = { version = "4.6.7", features = ["derive"] }
 wasmtime = "49"
 tokio = { version = "1.53", features = ["rt", "macros", "time", "sync"] }
 rand = "0.10.3"

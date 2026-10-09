@@ -1,7 +1,6 @@
 use std::{
     collections::VecDeque,
-    env,
-    path::Path,
+    path::{Path, PathBuf},
     process::ExitCode,
     time::{Instant, SystemTime},
 };
@@ -9,6 +8,7 @@ use std::{
 use dart2wasmtime::{
     DartCallback, DartEmbedder, DartSchedule, StopwatchFrequency, add_dart_imports, invoke_main,
 };
+use clap::Parser;
 use rand::Rng;
 use tokio::{
     spawn,
@@ -20,29 +20,33 @@ use wasmtime::{
     Config, Engine, Instance, Linker, Module, Result, Store, error::Context, format_err,
 };
 
-// cargo run --example run -- /home/simon/src/wasm.dart/playground/hello_world.wasm
+/// Runs a Dart module compiled with dart2wasm.
+#[derive(Parser)]
+struct Args {
+    /// Path to the compiled `.wasm` module.
+    module: PathBuf,
+    /// Only instantiate the module without invoking `main`.
+    #[arg(long)]
+    instantiate_only: bool,
+}
+
 #[tokio::main(flavor = "current_thread")]
 pub async fn main() -> ExitCode {
-    let mut args = env::args_os();
-    let program = args.next();
-    let (Some(module), None) = (args.next(), args.next()) else {
-        let program = program
-            .as_deref()
-            .map(|p| p.to_string_lossy())
-            .unwrap_or("run".into());
-        eprintln!("Usage: {program} <module.wasm>");
-        return ExitCode::FAILURE;
-    };
+    let args = Args::parse();
 
     let (sender, receiver) = mpsc::channel(1);
 
-    let (store, instance) = match instantiate(module, sender.clone()) {
+    let (store, instance) = match instantiate(&args.module, sender.clone()) {
         Ok(ok) => ok,
         Err(e) => {
             eprintln!("Error: {e:?}");
             return ExitCode::FAILURE;
         }
     };
+
+    if args.instantiate_only {
+        return ExitCode::SUCCESS;
+    }
 
     let task = spawn(run_dart_app(store, instance, receiver));
     let _ = sender

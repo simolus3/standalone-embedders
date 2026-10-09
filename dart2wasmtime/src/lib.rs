@@ -17,6 +17,7 @@ use crate::{
 pub use event_loop::{DartCallback, DartSchedule};
 pub use stopwatch::StopwatchFrequency;
 
+mod developer;
 mod event_loop;
 mod numbers;
 mod stack_trace;
@@ -61,6 +62,14 @@ pub trait DartEmbedder: 'static {
 
     fn monotonic_ticks(&mut self) -> Result<i64> {
         bail!("monotonic timer not implemented")
+    }
+
+    fn debugger(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    fn inspect(&self, _obj: Option<Rooted<AnyRef>>) -> Result<()> {
+        Ok(())
     }
 
     /// The frequency in which [Self::monotonic_ticks] are incremented.
@@ -284,6 +293,22 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
             }
             "jsonEncodeString" => {
                 linker.func_wrap("dart", import.name(), DartString::func_json_encode_string)?;
+            }
+            "debugger" => {
+                linker.func_wrap("dart", import.name(), developer::func_debugger)?;
+            }
+            "inspect" => {
+                linker.func_wrap("dart", import.name(), developer::func_inspect)?;
+            }
+            "timelineStreamEnabled" => {
+                linker.func_wrap(
+                    "dart",
+                    import.name(),
+                    developer::func_timeline_stream_enabled,
+                )?;
+            }
+            "reportTaskEvent" => {
+                linker.func_wrap("dart", import.name(), developer::func_report_task_event)?;
             }
             _ => bail!("Unknown Dart import: {}", import.name()),
         }

@@ -26,8 +26,7 @@ void main() {
 }
 
 void _defineComparisonTest(String Function() exampleRunner, File input) {
-  late Directory scratchSpace;
-  late String wasmPath;
+  final module = CompiledModuleTest(input);
   late String referenceOutput;
 
   setUpAll(() async {
@@ -37,26 +36,10 @@ void _defineComparisonTest(String Function() exampleRunner, File input) {
     }
 
     referenceOutput = output.stdout as String;
-
-    scratchSpace = await Directory.systemTemp.createTemp('dart-wasm-embedder');
-    wasmPath = p.join(scratchSpace.path, 'compiled.wasm');
-    await runProcess(Platform.resolvedExecutable, [
-      'compile',
-      'wasm',
-      '--standalone',
-      '-E--no-strip-wasm',
-      input.path,
-      '-o',
-      wasmPath,
-    ]);
-  });
-
-  tearDownAll(() async {
-    await scratchSpace.delete(recursive: true);
   });
 
   test('dart2wasmtime', () async {
-    final out = await runProcess(exampleRunner(), [wasmPath]);
+    final out = await runProcess(exampleRunner(), [module.wasmPath]);
     expect(out.stderr, isEmpty);
     expect(out.stdout, referenceOutput);
   });

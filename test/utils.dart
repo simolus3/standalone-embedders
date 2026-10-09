@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:test/test.dart';
 
 Future<ProcessResult> runProcess(
   String executable,
@@ -36,4 +37,31 @@ Future<String> cargoExampleBinary(String name) async {
     'examples',
     Platform.isWindows ? '$name.exe' : name,
   );
+}
+
+final class CompiledModuleTest {
+  late Directory scratchSpace;
+  late String wasmPath;
+
+  CompiledModuleTest(File input) {
+    setUpAll(() async {
+      scratchSpace = await Directory.systemTemp.createTemp(
+        'dart-wasm-embedder',
+      );
+      wasmPath = p.join(scratchSpace.path, 'compiled.wasm');
+      await runProcess(Platform.resolvedExecutable, [
+        'compile',
+        'wasm',
+        '--standalone',
+        '-E--no-strip-wasm',
+        input.path,
+        '-o',
+        wasmPath,
+      ]);
+    });
+
+    tearDownAll(() async {
+      await scratchSpace.delete(recursive: true);
+    });
+  }
 }

@@ -112,8 +112,8 @@ apps work.
 | `randomIntSecure`                          | ✅ |
 | `print`                                    | ✅ |
 | `jsonEncodeString`                         | ✅ |
-| `debugger`                                 | ❌ |
-| `inspect`                                  | ❌ |
-| `timelineStreamEnabled`                    | ❌ |
-| `reportTaskEvent`                          | ❌ |
+| `debugger`                                 | ✅ |
+| `inspect`                                  | ✅ |
+| `timelineStreamEnabled`                    | ✅ |
+| `reportTaskEvent`                          | ✅ |
 <!-- symbols-table:end -->
