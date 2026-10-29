@@ -200,9 +200,9 @@ impl DartEmbedder for DemoDartEmbedder {
 
     fn monotonic_ticks(&mut self) -> Result<i64> {
         let now = Instant::now();
-        let epoch = self.stopwatch_epoch.get_or_insert(now);
+        let epoch = *self.stopwatch_epoch.get_or_insert(now);
 
-        Ok(epoch.duration_since(now).as_micros() as i64)
+        Ok(now.duration_since(epoch).as_micros() as i64)
     }
 
     fn time_zone_name(&self, seconds_since_epoch: i64) -> Result<String> {
