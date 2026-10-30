@@ -29,6 +29,9 @@ struct Args {
     /// Only instantiate the module without invoking `main`.
     #[arg(long)]
     instantiate_only: bool,
+    /// Arguments passed to the Dart `main` function.
+    #[arg(trailing_var_arg = true)]
+    dart_args: Vec<String>,
 }
 
 // Run with cargo run --example run <path to wasm>
@@ -50,7 +53,7 @@ pub async fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
-    let task = spawn(run_dart_app(store, instance, receiver));
+    let task = spawn(run_dart_app(store, instance, receiver, args.dart_args));
     let _ = sender
         .send(DartEvent::Start {
             _keepalive: sender.clone(),
@@ -95,10 +98,12 @@ async fn run_dart_app(
     mut store: Store<DemoDartEmbedder>,
     instance: Instance,
     mut receiver: Receiver<DartEvent>,
+    dart_args: Vec<String>,
 ) -> Result<()> {
+    let dart_args: Vec<&str> = dart_args.iter().map(String::as_str).collect();
     while let Some(event) = receiver.recv().await {
         match event {
-            DartEvent::Start { .. } => invoke_main(&instance, &mut store, &[]),
+            DartEvent::Start { .. } => invoke_main(&instance, &mut store, &dart_args),
             DartEvent::Timer(ref callback) => callback.invoke(&mut store),
         }
         .with_context(|| format!("Handling event {event:?}"))?;
