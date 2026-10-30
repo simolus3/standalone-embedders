@@ -540,13 +540,17 @@ pub fn invoke_main(
     }
 
     let array: Rooted<AnyRef> = if args_refs.is_empty() {
-        ArrayRef::new(&mut *store, &allocator, &Val::I32(0), 0)?
+        ArrayRef::new(&mut *store, &allocator, &Val::ExternRef(None), 0)?
     } else {
-        let array = ArrayRef::new(&mut *store, &allocator, &Val::I32(0), args.len() as u32)?;
+        let array = ArrayRef::new(
+            &mut *store,
+            &allocator,
+            &Val::ExternRef(None),
+            args.len() as u32,
+        )?;
 
         for (i, arg) in args_refs.iter().enumerate() {
-            let arg = AnyRef::convert_extern(&mut *store, *arg)?;
-            array.set(&mut *store, i as u32, Val::AnyRef(Some(arg)))?;
+            array.set(&mut *store, i as u32, Val::ExternRef(Some(*arg)))?;
         }
 
         array
