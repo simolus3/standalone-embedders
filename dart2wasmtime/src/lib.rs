@@ -517,10 +517,10 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
 }
 
 /// Invokes the `main` function of a Dart program with the given arguments.
-pub fn invoke_main(
+pub fn invoke_main<'a>(
     instance: &Instance,
     store: &mut impl AsContextMut,
-    args: &[&str],
+    args: impl IntoIterator<Item = &'a str>,
 ) -> Result<()> {
     let func = instance
         .get_func(&mut *store, "$invokeMain")
@@ -534,10 +534,14 @@ pub fn invoke_main(
 
     let allocator = ArrayRefPre::new(&mut *store, arr_type.clone());
 
-    let mut args_refs = Vec::with_capacity(args.len());
-    for arg in args {
-        args_refs.push(DartString::new_externref(&mut *store, *arg)?);
-    }
+    let args_refs = {
+        let mut iter = args.into_iter();
+        let mut vec = Vec::with_capacity(iter.size_hint().0);
+        while let Some(item) = iter.next() {
+            vec.push(DartString::new_externref(&mut *store, item)?);
+        }
+        vec
+    };
 
     let array: Rooted<AnyRef> = if args_refs.is_empty() {
         ArrayRef::new(&mut *store, &allocator, &Val::ExternRef(None), 0)?
@@ -546,7 +550,7 @@ pub fn invoke_main(
             &mut *store,
             &allocator,
             &Val::ExternRef(None),
-            args.len() as u32,
+            args_refs.len() as u32,
         )?;
 
         for (i, arg) in args_refs.iter().enumerate() {
