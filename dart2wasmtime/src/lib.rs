@@ -535,9 +535,9 @@ pub fn invoke_main<'a>(
     let allocator = ArrayRefPre::new(&mut *store, arr_type.clone());
 
     let args_refs = {
-        let mut iter = args.into_iter();
+        let iter = args.into_iter();
         let mut vec = Vec::with_capacity(iter.size_hint().0);
-        while let Some(item) = iter.next() {
+        for item in iter {
             vec.push(DartString::new_externref(&mut *store, item)?);
         }
         vec
