@@ -100,10 +100,11 @@ async fn run_dart_app(
     mut receiver: Receiver<DartEvent>,
     dart_args: Vec<String>,
 ) -> Result<()> {
-    let dart_args: Vec<&str> = dart_args.iter().map(String::as_str).collect();
     while let Some(event) = receiver.recv().await {
         match event {
-            DartEvent::Start { .. } => invoke_main(&instance, &mut store, &dart_args),
+            DartEvent::Start { .. } => {
+                invoke_main(&instance, &mut store, dart_args.iter().map(|e| e.as_ref()))
+            }
             DartEvent::Timer(ref callback) => callback.invoke(&mut store),
         }
         .with_context(|| format!("Handling event {event:?}"))?;
