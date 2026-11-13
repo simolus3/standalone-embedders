@@ -4,10 +4,6 @@ use wasmtime::{ExternRef, GcRef, Result, Rooted, StoreContext, StoreContextMut, 
 
 use crate::DartEmbedder;
 
-pub fn null_check<T: GcRef>(r: Option<Rooted<T>>) -> Result<Rooted<T>> {
-    r.ok_or_else(|| format_err!("Unexpected null"))
-}
-
 pub fn null_check_ref<T: GcRef>(r: Option<&Rooted<T>>) -> Result<&Rooted<T>> {
     r.ok_or_else(|| format_err!("Unexpected null"))
 }

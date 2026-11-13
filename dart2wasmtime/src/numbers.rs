@@ -1,11 +1,7 @@
 use alloc::{borrow::ToOwned, boxed::Box, format, string::String};
 use wasmtime::{Caller, ExternRef, Result, Rooted};
 
-use crate::{
-    DartEmbedder,
-    string::DartString,
-    utils::{externref_ref, null_check},
-};
+use crate::{DartEmbedder, string::DartString, utils::externref_ref};
 
 pub fn func_f64_to_string<'a, E: DartEmbedder>(
     caller: Caller<'a, E>,
@@ -122,9 +118,8 @@ pub fn func_f64_to_precision<'a, E: DartEmbedder>(
 
 pub fn func_double_try_parse<'a, E: DartEmbedder>(
     mut caller: Caller<'a, E>,
-    source: Option<Rooted<ExternRef>>,
+    source: Rooted<ExternRef>,
 ) -> Result<Option<Rooted<ExternRef>>> {
-    let source = null_check(source)?;
     let dart = DartString::from_externref(&mut caller, &source)?;
     let Ok(parsed) = dart.as_ref().parse::<f64>() else {
         return Ok(None);
@@ -135,9 +130,8 @@ pub fn func_double_try_parse<'a, E: DartEmbedder>(
 
 pub fn func_parse_result_get_double<'a, E: DartEmbedder>(
     caller: Caller<'a, E>,
-    source: Option<Rooted<ExternRef>>,
+    source: Rooted<ExternRef>,
 ) -> Result<f64> {
-    let source = null_check(source)?;
     let value: &f64 = externref_ref(&caller, &source)?;
 
     Ok(*value)
@@ -145,9 +139,8 @@ pub fn func_parse_result_get_double<'a, E: DartEmbedder>(
 
 pub fn func_double_parse_infallible<'a, E: DartEmbedder>(
     mut caller: Caller<'a, E>,
-    source: Option<Rooted<ExternRef>>,
+    source: Rooted<ExternRef>,
 ) -> Result<f64> {
-    let source = null_check(source)?;
     let dart = DartString::from_externref(&mut caller, &source)?;
     let parsed: f64 = dart.as_ref().parse()?;
 

@@ -1,64 +1,78 @@
 use core::{any::Any, time::Duration};
 
-use wasmtime::{AnyRef, AsContextMut, Caller, ExternRef, Func, OwnedRooted, Result, Rooted, Val};
-
-use crate::{
-    DartEmbedder,
-    utils::{externref_mut, null_check},
+use wasmtime::{
+    AnyRef, AsContextMut, Caller, ExternRef, Func, OwnedRooted, Result, Rooted, Val, format_err,
 };
 
+use crate::{DartEmbedder, utils::externref_mut};
+
+/// Extracts a [DartCallback] from a `(callback, arg)` pair of arguments passed to a `func_new`
+/// host function.
+fn callback_from_args<E: DartEmbedder>(
+    caller: &mut Caller<'_, E>,
+    callback: &Val,
+    arg: &Val,
+) -> Result<DartCallback> {
+    let callback = *callback
+        .func_ref()
+        .flatten()
+        .ok_or_else(|| format_err!("Expected function"))?;
+    let arg = arg
+        .any_ref()
+        .flatten()
+        .ok_or_else(|| format_err!("Expected arg"))?;
+
+    let arg = arg.to_owned_rooted(caller)?;
+    Ok(DartCallback { callback, arg })
+}
+
+fn duration_from_args(arg: &Val) -> Result<Duration> {
+    let micros = arg.i64().ok_or_else(|| format_err!("Expected i64"))?;
+    Ok(Duration::from_micros(micros as u64))
+}
+
+/// `scheduleOnce`, implemented with `func_new` since the callback parameter is a typed funcref.
 pub fn func_schedule_once<E: DartEmbedder>(
     mut caller: Caller<'_, E>,
-    delay: i64,
-    callback: Func,
-    arg: Option<Rooted<AnyRef>>,
-) -> Result<Rooted<ExternRef>> {
-    let arg = match arg {
-        None => None,
-        Some(arg) => Some(arg.to_owned_rooted(&mut caller)?),
-    };
-    let callback = DartCallback { callback, arg };
-    let delay = Duration::from_micros(delay as u64);
+    args: &[Val],
+    results: &mut [Val],
+) -> Result<()> {
+    let delay = duration_from_args(&args[0])?;
+    let callback = callback_from_args(&mut caller, &args[1], &args[2])?;
 
     let result = caller.data_mut().schedule_once(delay, callback)?;
-    ExternRef::new(caller, result)
+    results[0] = Val::ExternRef(Some(ExternRef::new(caller, result)?));
+    Ok(())
 }
 
+/// `scheduleRepeated`, implemented with `func_new` since the callback parameter is a typed funcref.
 pub fn func_schedule_repeated<E: DartEmbedder>(
     mut caller: Caller<'_, E>,
-    interval: i64,
-    callback: Func,
-    arg: Option<Rooted<AnyRef>>,
-) -> Result<Rooted<ExternRef>> {
-    let arg = match arg {
-        None => None,
-        Some(arg) => Some(arg.to_owned_rooted(&mut caller)?),
-    };
-    let callback = DartCallback { callback, arg };
-    let interval = Duration::from_micros(interval as u64);
+    args: &[Val],
+    results: &mut [Val],
+) -> Result<()> {
+    let interval = duration_from_args(&args[0])?;
+    let callback = callback_from_args(&mut caller, &args[1], &args[2])?;
 
     let result = caller.data_mut().schedule_repeated(interval, callback)?;
-    ExternRef::new(caller, result)
+    results[0] = Val::ExternRef(Some(ExternRef::new(caller, result)?));
+    Ok(())
 }
 
+/// `queueMicrotask`, implemented with `func_new` since the callback parameter is a typed funcref.
 pub fn func_queue_microtask<E: DartEmbedder>(
     mut caller: Caller<'_, E>,
-    callback: Func,
-    arg: Option<Rooted<AnyRef>>,
+    args: &[Val],
+    _results: &mut [Val],
 ) -> Result<()> {
-    let arg = match arg {
-        None => None,
-        Some(arg) => Some(arg.to_owned_rooted(&mut caller)?),
-    };
-    let callback = DartCallback { callback, arg };
+    let callback = callback_from_args(&mut caller, &args[0], &args[1])?;
     caller.data_mut().queue_microtask(callback)
 }
 
 pub fn func_clear_schedule<E: DartEmbedder>(
     mut caller: Caller<'_, E>,
-    schedule: Option<Rooted<ExternRef>>,
+    schedule: Rooted<ExternRef>,
 ) -> Result<()> {
-    let schedule = null_check(schedule)?;
     let schedule: &mut E::Timer = externref_mut(&mut caller, &schedule)?;
     schedule.clear_schedule();
 
@@ -68,14 +82,14 @@ pub fn func_clear_schedule<E: DartEmbedder>(
 #[derive(Clone, Debug)]
 pub struct DartCallback {
     callback: Func,
-    arg: Option<OwnedRooted<AnyRef>>,
+    arg: OwnedRooted<AnyRef>,
 }
 
 impl DartCallback {
     pub fn invoke(&self, mut store: impl AsContextMut) -> Result<()> {
-        let arg = self.arg.as_ref().map(|arg| arg.to_rooted(&mut store));
+        let arg = self.arg.to_rooted(&mut store);
 
-        let param = Val::AnyRef(arg);
+        let param = Val::AnyRef(Some(arg));
         self.callback.call(&mut store, &[param], &mut [])
     }
 }

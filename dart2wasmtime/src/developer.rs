@@ -24,8 +24,8 @@ pub fn func_report_task_event(
     _task_id: i32,
     _flow_id: i32,
     _type: i32,
-    _name: Option<Rooted<ExternRef>>,
-    _arguments_as_json: Option<Rooted<ExternRef>>,
+    _name: Rooted<ExternRef>,
+    _arguments_as_json: Rooted<ExternRef>,
 ) -> i32 {
     0
 }

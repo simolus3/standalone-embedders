@@ -4,11 +4,7 @@ use alloc::{boxed::Box, string::String};
 use regress::{Match, Regex};
 use wasmtime::{Caller, ExternRef, OwnedRooted, Result, Rooted, StoreContext, bail};
 
-use crate::{
-    DartEmbedder,
-    string::DartString,
-    utils::{externref_ref, null_check, null_check_ref},
-};
+use crate::{DartEmbedder, string::DartString, utils::externref_ref};
 
 struct DartRegex {
     regex: Regex,
@@ -61,14 +57,13 @@ impl DartMatch {
 
 pub fn func_string_replace_all_regexp<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    string: Option<Rooted<ExternRef>>,
-    needle: Option<Rooted<ExternRef>>,
-    replacement: Option<Rooted<ExternRef>>,
-) -> Result<Option<Rooted<ExternRef>>> {
-    let string = null_check(string)?;
+    string: Rooted<ExternRef>,
+    needle: Rooted<ExternRef>,
+    replacement: Rooted<ExternRef>,
+) -> Result<Rooted<ExternRef>> {
     let haystack = DartString::from_externref(&caller, &string)?;
-    let needle = DartRegex::from_externref(&caller, null_check_ref(needle.as_ref())?)?;
-    let replacement = DartString::from_externref(&caller, null_check_ref(replacement.as_ref())?)?;
+    let needle = DartRegex::from_externref(&caller, &needle)?;
+    let replacement = DartString::from_externref(&caller, &replacement)?;
     let haystack = haystack.as_ref();
 
     let mut result = None::<(String, usize)>;
@@ -84,23 +79,23 @@ pub fn func_string_replace_all_regexp<E: DartEmbedder>(
 
     Ok(match result {
         // Nothing changed? Return original reference.
-        None => Some(string),
+        None => string,
         Some((mut replacement, last_end)) => {
             replacement.push_str(&haystack[last_end..]);
-            Some(DartString::new_externref(caller, replacement)?)
+            DartString::new_externref(caller, replacement)?
         }
     })
 }
 
 pub fn func_regexp_create_or_fail_with_string<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    string: Option<Rooted<ExternRef>>,
+    string: Rooted<ExternRef>,
     multiline: i32,
     case_sensitive: i32,
     unicode: i32,
     dot_all: i32,
 ) -> Result<Rooted<ExternRef>> {
-    let string = DartString::from_externref(&caller, &null_check(string)?)?;
+    let string = DartString::from_externref(&caller, &string)?;
     let flags = regress::Flags {
         multiline: multiline != 0,
         icase: case_sensitive == 0,
@@ -128,9 +123,9 @@ pub fn func_regexp_is_regexp<E: DartEmbedder>(
 
 pub fn func_regexp_escape<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    string: Option<Rooted<ExternRef>>,
+    string: Rooted<ExternRef>,
 ) -> Result<Rooted<ExternRef>> {
-    let string = DartString::from_externref(&caller, &null_check(string)?)?;
+    let string = DartString::from_externref(&caller, &string)?;
     let escaped = regress::escape(string.as_ref());
 
     DartString::new_externref(caller, escaped)
@@ -138,13 +133,12 @@ pub fn func_regexp_escape<E: DartEmbedder>(
 
 pub fn func_regexp_match<E: DartEmbedder>(
     mut caller: Caller<'_, E>,
-    regexp: Option<Rooted<ExternRef>>,
-    string: Option<Rooted<ExternRef>>,
+    regexp: Rooted<ExternRef>,
+    string: Rooted<ExternRef>,
     start: i32,
     as_prefix: i32,
 ) -> Result<Option<Rooted<ExternRef>>> {
-    let string = null_check(string)?;
-    let regexp = DartRegex::from_externref(&caller, null_check_ref(regexp.as_ref())?)?;
+    let regexp = DartRegex::from_externref(&caller, &regexp)?;
     let haystack = DartString::from_externref(&caller, &string)?;
 
     let start = haystack.byte_offset(start)?;
@@ -170,36 +164,36 @@ pub fn func_regexp_match<E: DartEmbedder>(
 
 pub fn func_regexp_match_get_start<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    rmatch: Option<Rooted<ExternRef>>,
+    rmatch: Rooted<ExternRef>,
 ) -> Result<i32> {
-    let rmatch = DartMatch::from_externref(&caller, &null_check(rmatch)?)?;
+    let rmatch = DartMatch::from_externref(&caller, &rmatch)?;
     let search_str = rmatch.search_string(&caller)?;
     Ok(search_str.utf16_index(rmatch.regex_match.start()))
 }
 
 pub fn func_regexp_match_get_end<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    rmatch: Option<Rooted<ExternRef>>,
+    rmatch: Rooted<ExternRef>,
 ) -> Result<i32> {
-    let rmatch = DartMatch::from_externref(&caller, &null_check(rmatch)?)?;
+    let rmatch = DartMatch::from_externref(&caller, &rmatch)?;
     let search_str = rmatch.search_string(&caller)?;
     Ok(search_str.utf16_index(rmatch.regex_match.end()))
 }
 
 pub fn func_regexp_match_group_count<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    rmatch: Option<Rooted<ExternRef>>,
+    rmatch: Rooted<ExternRef>,
 ) -> Result<i32> {
-    let rmatch = DartMatch::from_externref(&caller, &null_check(rmatch)?)?;
+    let rmatch = DartMatch::from_externref(&caller, &rmatch)?;
     Ok(i32::try_from(rmatch.regex_match.captures.len())?)
 }
 
 pub fn func_regexp_match_group<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    rmatch: Option<Rooted<ExternRef>>,
+    rmatch: Rooted<ExternRef>,
     index: i32,
 ) -> Result<Option<Rooted<ExternRef>>> {
-    let rmatch = DartMatch::from_externref(&caller, &null_check(rmatch)?)?;
+    let rmatch = DartMatch::from_externref(&caller, &rmatch)?;
     let index = usize::try_from(index)?;
     if index > rmatch.regex_match.captures.len() {
         bail!("invalid group index")
@@ -216,18 +210,18 @@ pub fn func_regexp_match_group<E: DartEmbedder>(
 
 pub fn func_regexp_match_get_named_groups<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    rmatch: Option<Rooted<ExternRef>>,
+    rmatch: Rooted<ExternRef>,
 ) -> Result<i32> {
-    let rmatch = DartMatch::from_externref(&caller, &null_check(rmatch)?)?;
+    let rmatch = DartMatch::from_externref(&caller, &rmatch)?;
     Ok(i32::try_from(rmatch.regex_match.named_groups().count())?)
 }
 
 pub fn func_regexp_match_get_group_name<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    rmatch: Option<Rooted<ExternRef>>,
+    rmatch: Rooted<ExternRef>,
     index: i32,
 ) -> Result<Rooted<ExternRef>> {
-    let rmatch = DartMatch::from_externref(&caller, &null_check(rmatch)?)?;
+    let rmatch = DartMatch::from_externref(&caller, &rmatch)?;
     let (name, _) = rmatch.named_group(index)?;
     let name: Box<str> = name.into();
 
@@ -236,10 +230,9 @@ pub fn func_regexp_match_get_group_name<E: DartEmbedder>(
 
 pub fn func_regexp_match_get_group_by_name<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    rmatch: Option<Rooted<ExternRef>>,
+    rmatch: Rooted<ExternRef>,
     name_index: i32,
 ) -> Result<Option<Rooted<ExternRef>>> {
-    let rmatch = null_check(rmatch)?;
     let rmatch = DartMatch::from_externref(&caller, &rmatch)?;
     let (_, range) = rmatch.named_group(name_index)?;
     let Some(range) = range else {

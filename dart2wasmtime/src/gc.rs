@@ -4,7 +4,7 @@ use wasmtime::{AnyRef, AsContext, Caller, ExternRef, OwnedRooted, Result, Rooted
 
 use crate::{
     DartEmbedder,
-    utils::{externref_mut, externref_ref, null_check},
+    utils::{externref_mut, externref_ref},
 };
 
 use hashbrown::HashMap;
@@ -14,16 +14,15 @@ use hashbrown::HashMap;
 
 pub fn func_weak_ref_create<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    original_value: Option<Rooted<AnyRef>>,
+    original_value: Rooted<AnyRef>,
 ) -> Result<Rooted<ExternRef>> {
-    ExternRef::convert_any(caller, null_check(original_value)?)
+    ExternRef::convert_any(caller, original_value)
 }
 
 pub fn func_weak_ref_get<E: DartEmbedder>(
     caller: Caller<'_, E>,
-    weak: Option<Rooted<ExternRef>>,
+    weak: Rooted<ExternRef>,
 ) -> Result<Option<Rooted<AnyRef>>> {
-    let weak = null_check(weak)?;
     Ok(Some(AnyRef::convert_extern(caller, weak)?))
 }
 
@@ -67,13 +66,10 @@ pub fn func_expando_create<E: DartEmbedder>(caller: Caller<'_, E>) -> Result<Roo
 
 pub fn func_expando_get<E: DartEmbedder>(
     mut caller: Caller<'_, E>,
-    expando: Option<Rooted<ExternRef>>,
-    target: Option<Rooted<AnyRef>>,
+    expando: Rooted<ExternRef>,
+    target: Rooted<AnyRef>,
     target_identity_hash_code: i64,
 ) -> Result<Option<Rooted<AnyRef>>> {
-    let expando = null_check(expando)?;
-    let target = null_check(target)?;
-
     let value = {
         let data: &Expando = externref_ref(&caller, &expando)?;
         data.find_index(&caller, &target, target_identity_hash_code)?
@@ -85,14 +81,11 @@ pub fn func_expando_get<E: DartEmbedder>(
 
 pub fn func_expando_set<E: DartEmbedder>(
     mut caller: Caller<'_, E>,
-    expando: Option<Rooted<ExternRef>>,
-    target: Option<Rooted<AnyRef>>,
+    expando: Rooted<ExternRef>,
+    target: Rooted<AnyRef>,
     target_identity_hash_code: i64,
     value: Option<Rooted<AnyRef>>,
 ) -> Result<()> {
-    let expando = null_check(expando)?;
-    let target = null_check(target)?;
-
     let index = externref_ref::<_, Expando>(&caller, &expando)?.find_index(
         &caller,
         &target,
@@ -151,22 +144,18 @@ pub fn func_finalizer_create<E: DartEmbedder>(
 
 pub fn func_finalizer_attach<E: DartEmbedder>(
     _caller: Caller<'_, E>,
-    finalizer: Option<Rooted<ExternRef>>,
-    object: Option<Rooted<AnyRef>>,
+    _finalizer: Rooted<ExternRef>,
+    _object: Rooted<AnyRef>,
     _token: Option<Rooted<AnyRef>>,
     _detach_token: Option<Rooted<AnyRef>>,
 ) -> Result<()> {
-    null_check(finalizer)?;
-    null_check(object)?;
     Ok(())
 }
 
 pub fn func_finalizer_detach<E: DartEmbedder>(
     _caller: Caller<'_, E>,
-    finalizer: Option<Rooted<ExternRef>>,
-    detach_token: Option<Rooted<AnyRef>>,
+    _finalizer: Rooted<ExternRef>,
+    _detach_token: Rooted<AnyRef>,
 ) -> Result<()> {
-    null_check(finalizer)?;
-    null_check(detach_token)?;
     Ok(())
 }

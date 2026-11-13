@@ -7,7 +7,7 @@ use wasmtime::{
 
 use crate::{
     DartEmbedder,
-    utils::{externref_mut, externref_ref, null_check, null_check_ref},
+    utils::{externref_mut, externref_ref, null_check_ref},
 };
 
 #[derive(Clone, Default, PartialEq, PartialOrd, Eq, Ord)]
@@ -127,30 +127,30 @@ impl DartString {
 
     pub fn func_string_length<E: DartEmbedder>(
         caller: Caller<'_, E>,
-        string: Option<Rooted<ExternRef>>,
+        string: Rooted<ExternRef>,
     ) -> Result<i32> {
-        let string: &Self = externref_ref(&caller, &null_check(string)?)?;
+        let string: &Self = externref_ref(&caller, &string)?;
         Ok(string.utf16_len() as i32)
     }
 
     pub fn func_string_equals<E: DartEmbedder>(
         caller: Caller<'_, E>,
-        a: Option<Rooted<ExternRef>>,
-        b: Option<Rooted<ExternRef>>,
+        a: Rooted<ExternRef>,
+        b: Rooted<ExternRef>,
     ) -> Result<i32> {
-        let a = Self::from_externref(&caller, &null_check(a)?)?;
-        let b = Self::from_externref(&caller, &null_check(b)?)?;
+        let a = Self::from_externref(&caller, &a)?;
+        let b = Self::from_externref(&caller, &b)?;
 
         Ok(if a.eq(b) { 1 } else { 0 })
     }
 
     pub fn func_string_compare<E: DartEmbedder>(
         caller: Caller<'_, E>,
-        a: Option<Rooted<ExternRef>>,
-        b: Option<Rooted<ExternRef>>,
+        a: Rooted<ExternRef>,
+        b: Rooted<ExternRef>,
     ) -> Result<i32> {
-        let a = Self::from_externref(&caller, &null_check(a)?)?;
-        let b = Self::from_externref(&caller, &null_check(b)?)?;
+        let a = Self::from_externref(&caller, &a)?;
+        let b = Self::from_externref(&caller, &b)?;
 
         Ok(match a.cmp(b) {
             core::cmp::Ordering::Less => -1,
@@ -161,10 +161,10 @@ impl DartString {
 
     pub fn func_string_code_unit_at<E: DartEmbedder>(
         caller: Caller<'_, E>,
-        string: Option<Rooted<ExternRef>>,
+        string: Rooted<ExternRef>,
         index: i32,
     ) -> Result<i32> {
-        let string = Self::from_externref(&caller, &null_check(string)?)?;
+        let string = Self::from_externref(&caller, &string)?;
         let Some(code_unit) = string.contents.encode_utf16().nth(usize::try_from(index)?) else {
             bail!("out of bounds")
         };
@@ -174,12 +174,12 @@ impl DartString {
 
     pub fn func_index_of_string<E: DartEmbedder>(
         caller: Caller<'_, E>,
-        string: Option<Rooted<ExternRef>>,
-        needle: Option<Rooted<ExternRef>>,
+        string: Rooted<ExternRef>,
+        needle: Rooted<ExternRef>,
         start: i32,
     ) -> Result<i32> {
-        let string = Self::from_externref(&caller, &null_check(string)?)?;
-        let needle = Self::from_externref(&caller, &null_check(needle)?)?;
+        let string = Self::from_externref(&caller, &string)?;
+        let needle = Self::from_externref(&caller, &needle)?;
 
         let start = string.byte_offset(start)?;
         Ok(match string.contents[start..].find(needle.as_ref()) {
@@ -190,12 +190,12 @@ impl DartString {
 
     pub fn func_last_index_of_string<E: DartEmbedder>(
         caller: Caller<'_, E>,
-        string: Option<Rooted<ExternRef>>,
-        needle: Option<Rooted<ExternRef>>,
+        string: Rooted<ExternRef>,
+        needle: Rooted<ExternRef>,
         start: i32,
     ) -> Result<i32> {
-        let string = Self::from_externref(&caller, &null_check(string)?)?;
-        let needle = Self::from_externref(&caller, &null_check(needle)?)?;
+        let string = Self::from_externref(&caller, &string)?;
+        let needle = Self::from_externref(&caller, &needle)?;
 
         // The Dart side clamps start to `length - needle.length`, which is negative if the needle
         // is longer than the string.
@@ -219,27 +219,27 @@ impl DartString {
 
     pub fn func_replace_all_string<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        string: Option<Rooted<ExternRef>>,
-        needle: Option<Rooted<ExternRef>>,
-        replacement: Option<Rooted<ExternRef>>,
-    ) -> Result<Option<Rooted<ExternRef>>> {
-        let string = Self::from_externref(&caller, &null_check(string)?)?;
-        let needle = Self::from_externref(&caller, &null_check(needle)?)?;
-        let replacement = Self::from_externref(&caller, &null_check(replacement)?)?;
+        string: Rooted<ExternRef>,
+        needle: Rooted<ExternRef>,
+        replacement: Rooted<ExternRef>,
+    ) -> Result<Rooted<ExternRef>> {
+        let string = Self::from_externref(&caller, &string)?;
+        let needle = Self::from_externref(&caller, &needle)?;
+        let replacement = Self::from_externref(&caller, &replacement)?;
 
         let replaced = string
             .as_ref()
             .replace(needle.as_ref(), replacement.as_ref());
-        Ok(Some(Self::new_externref(&mut caller, replaced)?))
+        Self::new_externref(&mut caller, replaced)
     }
 
     pub fn func_substring<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        string: Option<Rooted<ExternRef>>,
+        string: Rooted<ExternRef>,
         start: i32,
         end: i32,
-    ) -> Result<Option<Rooted<ExternRef>>> {
-        let string = Self::from_externref(&caller, &null_check(string)?)?;
+    ) -> Result<Rooted<ExternRef>> {
+        let string = Self::from_externref(&caller, &string)?;
         let start = string.byte_offset(start)?;
         let end = string.byte_offset(end)?;
         let Some(substring) = string.contents.get(start..end) else {
@@ -247,50 +247,50 @@ impl DartString {
         };
 
         let substring = Box::<str>::from(substring);
-        Ok(Some(Self::new_externref(&mut caller, substring)?))
+        Self::new_externref(&mut caller, substring)
     }
 
     pub fn func_to_lower_case<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        string: Option<Rooted<ExternRef>>,
-    ) -> Result<Option<Rooted<ExternRef>>> {
-        let string = Self::from_externref(&caller, &null_check(string)?)?;
+        string: Rooted<ExternRef>,
+    ) -> Result<Rooted<ExternRef>> {
+        let string = Self::from_externref(&caller, &string)?;
         let lower = string.contents.to_lowercase();
-        Ok(Some(Self::new_externref(&mut caller, lower)?))
+        Self::new_externref(&mut caller, lower)
     }
 
     pub fn func_to_upper_case<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        string: Option<Rooted<ExternRef>>,
-    ) -> Result<Option<Rooted<ExternRef>>> {
-        let string = Self::from_externref(&caller, &null_check(string)?)?;
+        string: Rooted<ExternRef>,
+    ) -> Result<Rooted<ExternRef>> {
+        let string = Self::from_externref(&caller, &string)?;
         let upper = string.contents.to_uppercase();
-        Ok(Some(Self::new_externref(&mut caller, upper)?))
+        Self::new_externref(&mut caller, upper)
     }
 
     pub fn func_concat<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        a: Option<Rooted<ExternRef>>,
-        b: Option<Rooted<ExternRef>>,
-    ) -> Result<Option<Rooted<ExternRef>>> {
-        let a = Self::from_externref(&caller, &null_check(a)?)?;
-        let b = Self::from_externref(&caller, &null_check(b)?)?;
+        a: Rooted<ExternRef>,
+        b: Rooted<ExternRef>,
+    ) -> Result<Rooted<ExternRef>> {
+        let a = Self::from_externref(&caller, &a)?;
+        let b = Self::from_externref(&caller, &b)?;
 
         let mut concat = String::with_capacity(a.contents.len() + b.contents.len());
         concat.push_str(a.as_ref());
         concat.push_str(b.as_ref());
-        Ok(Some(Self::new_externref(&mut caller, concat)?))
+        Self::new_externref(&mut caller, concat)
     }
 
     pub fn func_replace_range<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        string: Option<Rooted<ExternRef>>,
+        string: Rooted<ExternRef>,
         start: i32,
         end: i32,
-        replacement: Option<Rooted<ExternRef>>,
-    ) -> Result<Option<Rooted<ExternRef>>> {
-        let string = Self::from_externref(&caller, &null_check(string)?)?;
-        let replacement = Self::from_externref(&caller, &null_check(replacement)?)?;
+        replacement: Rooted<ExternRef>,
+    ) -> Result<Rooted<ExternRef>> {
+        let string = Self::from_externref(&caller, &string)?;
+        let replacement = Self::from_externref(&caller, &replacement)?;
 
         let start = string.byte_offset(start)?;
         let end = string.byte_offset(end)?;
@@ -300,7 +300,7 @@ impl DartString {
 
         let mut replaced = String::from(string.as_ref());
         replaced.replace_range(start..end, replacement.as_ref());
-        Ok(Some(Self::new_externref(&mut caller, replaced)?))
+        Self::new_externref(&mut caller, replaced)
     }
 
     pub fn func_to_code_units<E: DartEmbedder>(
@@ -326,9 +326,9 @@ impl DartString {
 
     pub fn func_json_encode_string<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        string: Option<Rooted<ExternRef>>,
+        string: Rooted<ExternRef>,
     ) -> Result<Rooted<ExternRef>> {
-        let string: &Self = externref_ref(&caller, &null_check(string)?)?;
+        let string: &Self = externref_ref(&caller, &string)?;
         let as_json: String = match serde_json::to_string(string.as_ref()) {
             Ok(json) => json,
             Err(_) => bail!("Could not format json"),
@@ -339,14 +339,13 @@ impl DartString {
 
     pub fn func_repeat<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        string: Option<Rooted<ExternRef>>,
+        string: Rooted<ExternRef>,
         amount: i32,
-    ) -> Result<Option<Rooted<ExternRef>>> {
-        let string = null_check(string)?;
+    ) -> Result<Rooted<ExternRef>> {
         let string = Self::from_externref(&caller, &string)?.as_ref();
         let repeated = string.repeat(usize::try_from(amount)?);
 
-        Ok(Some(Self::new_externref(&mut caller, repeated)?))
+        Self::new_externref(&mut caller, repeated)
     }
 
     /// Formats `value` like Dart's `int.toRadixString(radix)`: lowercase digits, with a leading
@@ -416,12 +415,9 @@ impl StringBuffer {
 
     pub fn func_write_string<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        buffer: Option<Rooted<ExternRef>>,
-        string: Option<Rooted<ExternRef>>,
+        buffer: Rooted<ExternRef>,
+        string: Rooted<ExternRef>,
     ) -> Result<()> {
-        let buffer = null_check(buffer)?;
-        let string = null_check(string)?;
-
         // TODO: Can we avoid the clone here?
         let string: &DartString = externref_ref(&caller, &string)?;
         let string = string.clone();
@@ -433,11 +429,9 @@ impl StringBuffer {
 
     pub fn func_write_char_code<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        buffer: Option<Rooted<ExternRef>>,
+        buffer: Rooted<ExternRef>,
         code: i32,
     ) -> Result<()> {
-        let buffer = null_check(buffer)?;
-
         let buffer: &mut Self = externref_mut(&mut caller, &buffer)?;
 
         buffer.data.push(
@@ -448,9 +442,8 @@ impl StringBuffer {
 
     pub fn func_clear<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        buffer: Option<Rooted<ExternRef>>,
+        buffer: Rooted<ExternRef>,
     ) -> Result<()> {
-        let buffer = null_check(buffer)?;
         let buffer: &mut Self = externref_mut(&mut caller, &buffer)?;
 
         buffer.data.clear();
@@ -459,9 +452,8 @@ impl StringBuffer {
 
     pub fn func_length<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        buffer: Option<Rooted<ExternRef>>,
+        buffer: Rooted<ExternRef>,
     ) -> Result<i32> {
-        let buffer = null_check(buffer)?;
         let buffer: &mut Self = externref_mut(&mut caller, &buffer)?;
 
         Ok(buffer.data.len() as i32)
@@ -469,9 +461,8 @@ impl StringBuffer {
 
     pub fn func_to_string<E: DartEmbedder>(
         mut caller: Caller<'_, E>,
-        buffer: Option<Rooted<ExternRef>>,
+        buffer: Rooted<ExternRef>,
     ) -> Result<Rooted<ExternRef>> {
-        let buffer = null_check(buffer)?;
         let buffer: Self = mem::take(externref_mut(&mut caller, &buffer)?);
 
         ExternRef::new(&mut caller, DartString::from(buffer.data.into_boxed_str()))

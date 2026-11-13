@@ -13,7 +13,6 @@ use wasmtime::{
 use crate::{
     stack_trace::StackTrace,
     string::{DartString, StringBuffer},
-    utils::null_check,
 };
 
 pub use event_loop::{DartCallback, DartSchedule};
@@ -148,13 +147,23 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
 
         match import.name() {
             "scheduleOnce" => {
-                linker.func_wrap("dart", import.name(), event_loop::func_schedule_once)?;
+                linker.func_new("dart", import.name(), fn_ty, event_loop::func_schedule_once)?;
             }
             "scheduleRepeated" => {
-                linker.func_wrap("dart", import.name(), event_loop::func_schedule_repeated)?;
+                linker.func_new(
+                    "dart",
+                    import.name(),
+                    fn_ty,
+                    event_loop::func_schedule_repeated,
+                )?;
             }
             "queueMicrotask" => {
-                linker.func_wrap("dart", import.name(), event_loop::func_queue_microtask)?;
+                linker.func_new(
+                    "dart",
+                    import.name(),
+                    fn_ty,
+                    event_loop::func_queue_microtask,
+                )?;
             }
             "clearSchedule" => {
                 linker.func_wrap("dart", import.name(), event_loop::func_clear_schedule)?;
@@ -325,8 +334,7 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
                 linker.func_wrap(
                     "dart",
                     import.name(),
-                    |caller: Caller<'_, E>, param: Option<Rooted<ExternRef>>| -> Result<()> {
-                        let param = null_check(param)?;
+                    |caller: Caller<'_, E>, param: Rooted<ExternRef>| -> Result<()> {
                         let str = DartString::from_externref(&caller, &param)?;
 
                         let embedder = caller.data();
@@ -338,9 +346,9 @@ pub fn add_dart_imports<E: DartEmbedder>(linker: &mut Linker<E>, module: &Module
                 linker.func_wrap(
                     "dart",
                     import.name(),
-                    |caller: Caller<'_, E>| -> Result<Option<Rooted<ExternRef>>> {
+                    |caller: Caller<'_, E>| -> Result<Rooted<ExternRef>> {
                         let base_uri = caller.data().base_uri()?;
-                        Ok(Some(DartString::new_externref(caller, base_uri)?))
+                        DartString::new_externref(caller, base_uri)
                     },
                 )?;
             }
