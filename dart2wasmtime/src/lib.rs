@@ -557,11 +557,11 @@ pub fn invoke_main<'a>(
         let array = ArrayRef::new(
             &mut *store,
             &allocator,
-            &Val::ExternRef(None),
+            &Val::ExternRef(Some(args_refs[0])),
             args_refs.len() as u32,
         )?;
 
-        for (i, arg) in args_refs.iter().enumerate() {
+        for (i, arg) in args_refs.iter().enumerate().skip(1) {
             array.set(&mut *store, i as u32, Val::ExternRef(Some(*arg)))?;
         }
 
