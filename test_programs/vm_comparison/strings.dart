@@ -50,4 +50,9 @@ void main() {
 
   print(jsonDecode(opaque('"héllo 🦀 \\u00e9"')));
   print(jsonDecode(opaque('{"key": ["a", "b"]}')));
+
+  // Latin-1 decoding of a lone 0xED (`í`), which is not valid UTF-8 on its own.
+  final latin1Bytes = base64Decode(opaque('7Q=='));
+  print(latin1.decode(latin1Bytes).length);
+  print(latin1.decode(latin1Bytes).codeUnits.join(','));
 }
