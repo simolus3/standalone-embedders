@@ -47,11 +47,12 @@ impl DartString {
             unsafe { bytes.assume_init() }
         };
 
-        let contents: Box<str> = unsafe {
-            // SAFETY: All bytes have been initialized with ASCII characters above,
-            // which makes them valid UTF-8.
-            alloc::str::from_boxed_utf8_unchecked(bytes)
-        };
+        // Dart one-byte strings: each byte is one code unit (Latin-1), not UTF-8.
+        let contents: Box<str> = bytes
+            .iter()
+            .map(|&b| b as char)
+            .collect::<String>()
+            .into_boxed_str();
 
         results[0] = Val::ExternRef(Some(ExternRef::new(
             &mut caller,
